@@ -1,6 +1,8 @@
 # dependências e saídas geradas
 node_modules/
 flow-view-output/
+flow-view-output-laravel/
+.flow-view/
 demo-output/
 coverage/
 *.tgz

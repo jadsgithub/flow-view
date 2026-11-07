@@ -21,6 +21,26 @@ export const MAX_FILES = 20_000;
 /** Profundidade máxima de diretórios percorridos. */
 export const MAX_DEPTH = 24;
 
+/** Quantidade máxima de passos (nós) de um diagrama; acima disso a geração é interrompida com erro claro. */
+export const MAX_NODES = 2_000;
+
+/** Aninhamento máximo de `()[]{}` aceito em um arquivo PHP (evita recursão/CPU explosivas). */
+export const MAX_NESTING = 120;
+
+/** Maior profundidade de aninhamento de `()[]{}` do texto (varredura linear, sem recursão). */
+export function maxNesting(text) {
+  let depth = 0;
+  let max = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    // ( [ {
+    if (c === 40 || c === 91 || c === 123) {
+      if (++depth > max) max = depth;
+    } else if ((c === 41 || c === 93 || c === 125) && depth > 0) depth--;
+  }
+  return max;
+}
+
 /** Tamanho máximo (bytes) de um flow.json aceito por `--render-only`. */
 export const MAX_FLOW_BYTES = 25_000_000;
 

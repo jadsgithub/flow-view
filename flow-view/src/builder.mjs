@@ -36,11 +36,14 @@ function topoOrder(nodes, edges) {
 /** Suposição (texto + chave) que a aresta carrega, ou null. */
 function edgeAssumption(from, edge) {
   const lab = edge.label || "";
-  if (from.type === "condition" && from.meta) {
+  if (from.type !== "switch" && from.meta) {
     if (lab === "sim" && from.meta.pos) return { key: `${from.id}:sim`, text: from.meta.pos };
     if (lab === "não" && from.meta.neg) return { key: `${from.id}:nao`, text: from.meta.neg };
   }
-  if (lab === "erro") return { key: `${from.id}:erro`, text: "ocorrer um erro durante a execução" };
+  if (lab === "erro" || lab.startsWith("erro · ")) {
+    const typed = lab.startsWith("erro · ") ? lab.slice(7) : "";
+    return { key: `${from.id}:${lab}`, text: typed ? `ocorrer o erro ${"`" + typed + "`"}` : "ocorrer um erro durante a execução" };
+  }
   if (from.type === "switch") {
     if (lab === "outro caso" || lab === "padrão") {
       return { key: `${from.id}:${lab}`, text: "nenhum dos outros casos combinar" };
@@ -141,6 +144,7 @@ export function buildFlowJson(data) {
 
   // entrada narrada
   const entryNode = enriched.find((n) => n.id === entry);
+  const loc = data.trace && data.trace.handler ? data.trace.handler : { file: scan.file, line: scan.line };
   if (entryNode) {
     const handler = entryNode.meta.handlerName;
     const inputs = entryNode.meta.facts || [];
@@ -152,7 +156,7 @@ export function buildFlowJson(data) {
         ? ` Ele recebe dados da requisição (veja abaixo) e começa a processá-los`
         : ` Ele não lê dados específicos da requisição e começa o processamento`) +
       (handler ? ` na função ${code(handler)}` : ` no handler da rota`) +
-      ` (${code(`${scan.file}:${scan.line}`)}).` +
+      ` (${code(`${loc.file}:${loc.line}`)}).` +
       ` Os próximos passos contam, na ordem, o que acontece até a resposta.`;
     entryNode.meta.tone = "neutral";
   }
@@ -183,7 +187,7 @@ export function buildFlowJson(data) {
     const from = nodeById.get(e.from);
     const a = from ? edgeAssumption(from, e) : null;
     let tone = "neutral";
-    if (e.label === "erro") tone = "error";
+    if (e.label === "erro" || String(e.label || "").startsWith("erro · ")) tone = "error";
     else if (reachOk(e.to)) tone = "ok";
     else if (reachErr(e.to)) tone = "error";
     return { ...e, tone, ...(a ? { when: a.text } : {}) };
@@ -195,7 +199,7 @@ export function buildFlowJson(data) {
     }
   }
 
-  const decisions = enriched.filter((n) => n.type === "condition").length;
+  const decisions = enriched.filter((n) => n.type === "condition" || (n.meta && n.meta.pos && n.meta.neg)).length;
   const okCount = outcomes.filter((o) => o.tone === "ok").length;
   const errCount = outcomes.filter((o) => o.tone === "error").length;
   const intro =
@@ -214,6 +218,8 @@ export function buildFlowJson(data) {
         file: scan.file,
         line: scan.line,
         framework: scan.framework || "unknown",
+        ...(data.trace && data.trace.laravel ? { route: data.trace.laravel } : {}),
+        ...(data.trace && data.trace.handler ? { handler: data.trace.handler } : {}),
       },
       summary: intro.replace(/\*\*/g, ""),
       intro,

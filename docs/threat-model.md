@@ -52,6 +52,8 @@ flowchart LR
 | T8 | **Injeção de comando** ao abrir o navegador / `install.sh` | `spawn` sem shell; `install.sh` só copia arquivo e não usa rede | `bin/flow-view.mjs`, `install.sh` |
 | T9 | **Supply chain**: dependência ou Action comprometida | Zero dependências; Actions fixadas por SHA; Dependabot; Dependency Review; `permissions` mínimas | `.github/` · `test/repo.test.mjs` |
 | T10 | **Adulteração de release** | Release só de commit da `main`; tag == versão; proveniência SLSA; `SHA256SUMS` | `.github/workflows/release.yml` |
+| T12 | **Negação de serviço** com PHP patológico (milhares de `(`/`{` aninhados, rotas/statements aos milhares) | Arquivo PHP com aninhamento > 120 é ignorado (varredura linear, sem recursão); índice de linhas em cache (sem tempo quadrático); no máximo 2.000 passos por diagrama; `vendor/` ignorado | `src/security.mjs`, `src/php/project.mjs`, `src/tracer.mjs` · testes de robustez em `test/laravel.test.mjs` |
+| T13 | **Elevação** via parser PHP / skill: executar `php`, `artisan` ou `composer` do alvo | O parser PHP é próprio e estático; nenhuma dessas ferramentas é invocada; resolução de classes (PSR-4) confinada à raiz por `isInside()` | `src/php/*` · testes `segurança (php)` |
 | T11 | **Prompt injection** em agentes que leem o `flow.json` | Aviso explícito no `SKILL.md` | `SKILL.md` |
 
 ## 5. Riscos residuais (assumidos)

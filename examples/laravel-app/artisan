@@ -1,0 +1,4 @@
+#!/usr/bin/env php
+<?php
+
+// Stub: existe apenas para o Flow View reconhecer este diretório como um projeto Laravel.

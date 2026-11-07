@@ -2,7 +2,7 @@
   "name": "flow-view",
   "displayName": "Flow View",
   "description": "Gera diagrama HTML de fluxo por rota/endpoint (scanner + viewer).",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "skills": [
     {
       "name": "flow-view",

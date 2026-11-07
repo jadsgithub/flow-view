@@ -136,20 +136,26 @@
   .strip:empty { display: none; }
   @media (min-width: 1100px) {
     .summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 0 2rem; }
-    .summary .intro { grid-column: 1 / -1; }
+    .summary .intro, .summary #inputs, .summary #outcomes { grid-column: 1 / -1; }
   }
   .strip-label {
     font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
     color: var(--text-dim); width: 100%; margin-bottom: -0.1rem;
   }
   .chip {
-    display: inline-flex; align-items: center; gap: 0.4rem;
-    padding: 0.2rem 0.6rem; border-radius: 999px;
-    font-size: 0.78rem; line-height: 1.4;
+    display: inline-flex; align-items: center; flex-wrap: wrap; gap: 0.35rem 0.45rem;
+    padding: 0.28rem 0.7rem; border-radius: 12px;
+    font-size: 0.78rem; line-height: 1.45;
     border: 1px solid color-mix(in srgb, var(--chip) 55%, transparent);
     background: color-mix(in srgb, var(--chip) 10%, var(--mask));
     color: var(--text);
     cursor: default;
+    max-width: 100%; min-width: 0;
+  }
+  .chip code {
+    white-space: nowrap;
+    word-break: keep-all;
+    overflow-wrap: normal;
   }
   .chip.btn { cursor: pointer; }
   .chip.btn:hover, .chip.on { background: color-mix(in srgb, var(--chip) 24%, var(--mask)); }
@@ -202,7 +208,8 @@
   /* ---------------- Cards ---------------- */
   .card {
     --tone: var(--action-stroke); --fill: var(--action-fill);
-    position: absolute; width: 376px;
+    --card-w: 376px;
+    position: absolute; width: var(--card-w); min-width: 0; box-sizing: border-box;
     background: linear-gradient(var(--fill), var(--fill)), var(--mask);
     border: 1px solid color-mix(in srgb, var(--tone) 60%, transparent);
     border-left: 4px solid var(--tone);
@@ -211,6 +218,7 @@
     transition: left 0.25s ease, top 0.25s ease, opacity 0.2s, filter 0.2s;
     cursor: default;
   }
+  .card.open { --card-w: 560px; }
   .card.k-entry { --tone: var(--entry-stroke); --fill: var(--entry-fill); }
   .card.k-decision { --tone: var(--decision-stroke); --fill: var(--decision-fill); }
   .card.k-validation { --tone: var(--validation-stroke); --fill: var(--validation-fill); }
@@ -224,7 +232,7 @@
   .card.flash { animation: flash 1.1s ease-out; }
   @keyframes flash { 0% { box-shadow: 0 0 0 0 var(--tone); } 30% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--tone) 45%, transparent); } 100% { box-shadow: var(--shadow); } }
 
-  .card-head { padding: 0.7rem 0.85rem 0.65rem; cursor: pointer; border-radius: 12px; }
+  .card-head { padding: 0.7rem 0.85rem 0.65rem; cursor: pointer; border-radius: 12px; overflow: hidden; min-width: 0; }
   .card-head:hover { background: color-mix(in srgb, var(--tone) 6%, transparent); }
   .card-top { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; }
   .num {
@@ -241,10 +249,10 @@
     font-size: 0.7rem; background: none; padding: 0; cursor: pointer;
   }
   .card.open .chev { transform: rotate(180deg); color: var(--tone); border-color: var(--tone); }
-  .ttl { margin: 0; font-size: 0.98rem; font-weight: 650; line-height: 1.3; }
-  .ttl code { font-size: 0.8em; }
+  .ttl { margin: 0; font-size: 0.98rem; font-weight: 650; line-height: 1.3; max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+  .ttl code { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
   .sub { margin: 0.3rem 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; word-break: break-word; }
   .card.open .sub { display: none; }
   .status-pill {
     display: inline-block; margin-left: 0.4rem; padding: 0 0.45rem; border-radius: 999px;
@@ -252,7 +260,7 @@
     color: var(--bg); background: var(--tone);
   }
 
-  .body { display: none; padding: 0 0.85rem 0.8rem; border-top: 1px dashed color-mix(in srgb, var(--tone) 35%, transparent); margin: 0 0.4rem; padding-top: 0.6rem; }
+  .body { display: none; padding: 0 0.85rem 0.8rem; border-top: 1px dashed color-mix(in srgb, var(--tone) 35%, transparent); margin: 0 0.4rem; padding-top: 0.6rem; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
   .card.open .body { display: block; }
   .sec { margin-top: 0.65rem; }
   .sec:first-child { margin-top: 0; }
@@ -260,12 +268,12 @@
     margin: 0 0 0.25rem; font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase;
     color: var(--text-dim); font-weight: 700;
   }
-  .sec p { margin: 0; font-size: 0.86rem; line-height: 1.55; }
+  .sec p { margin: 0; font-size: 0.86rem; line-height: 1.55; overflow-wrap: anywhere; }
   .sec ul { margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: var(--text-muted); }
   .sec li { margin: 0.12rem 0; }
-  dl.facts { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 0.7rem; font-size: 0.8rem; }
-  dl.facts dt { color: var(--text-muted); }
-  dl.facts dd { margin: 0; }
+  dl.facts { margin: 0; display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 0.2rem 0.7rem; font-size: 0.8rem; }
+  dl.facts dt { color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
+  dl.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
   .paths { display: grid; gap: 0.35rem; }
   .path {
     display: grid; grid-template-columns: auto 1fr; gap: 0.15rem 0.55rem; align-items: start;
@@ -280,9 +288,9 @@
     background: none; border: 0; padding: 0; cursor: pointer; color: var(--text); text-decoration: underline dotted;
     text-align: left;
   }
-  .inside { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; border-left: 2px solid color-mix(in srgb, var(--tone) 30%, transparent); padding-left: 0.6rem; }
-  .inside li { display: flex; gap: 0.5rem; justify-content: space-between; padding: 0.15rem 0; color: var(--text); }
-  .inside li .tx { flex: 1; }
+  .inside { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; border-left: 2px solid color-mix(in srgb, var(--tone) 30%, transparent); padding-left: 0.6rem; min-width: 0; }
+  .inside li { display: flex; gap: 0.5rem; justify-content: space-between; align-items: flex-start; padding: 0.15rem 0; color: var(--text); min-width: 0; }
+  .inside li .tx { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
   .inside li .ln { flex: none; font-size: 0.64rem; color: var(--text-dim); padding-top: 0.2rem; }
   .inside li.enter { color: var(--text-muted); font-style: italic; }
   .inside li.if > .tx, .inside li.else > .tx, .inside li.loop > .tx, .inside li.try > .tx, .inside li.catch > .tx,
@@ -516,7 +524,11 @@
       case "external_call": return { cls: "external", label: "SERVIÇO EXTERNO" };
       case "assignment": return { cls: "action", label: "DADO" };
       case "loop": return { cls: "action", label: "REPETIÇÃO" };
-      case "group": return { cls: "action", label: "PROTEÇÃO" };
+      case "group": return { cls: "action", label: n.meta.transaction ? "TRANSAÇÃO" : "PROTEÇÃO" };
+      case "middleware": return { cls: "validation", label: "MIDDLEWARE" };
+      case "database": return { cls: "action", label: "BANCO DE DADOS" };
+      case "queue": return { cls: "action", label: "EVENTO / FILA" };
+      case "notify": return { cls: "action", label: "NOTIFICAÇÃO" };
       case "catch": return { cls: "error", label: "SE DER ERRO" };
       case "throw": return { cls: "error", label: "ERRO LANÇADO" };
       case "return":
@@ -529,9 +541,16 @@
     }
   }
 
+  /** Nó em que o fluxo se divide (decisão, escolha, middleware, validação, bloco com catch…). */
+  function isBranching(n) {
+    if (n.type === "condition" || n.type === "switch") return true;
+    const out = OUT.get(n.id) || [];
+    return out.length > 1 && out.some((e) => e.label && e.label !== "segue");
+  }
+
   function subtitle(n) {
     if (state.mode === "tech") return "";
-    if (n.type === "condition" && n.meta.pos) {
+    if (n.meta.pos && n.meta.neg) {
       return `Sim: quando ${plain(n.meta.pos)}. Não: quando ${plain(n.meta.neg)}.`;
     }
     return firstSentence(n.explanation);
@@ -542,6 +561,7 @@
   /* ------------------------------------------------------------ */
   function edgeLabelText(e) {
     const l = e.label || "";
+    if (l.startsWith("erro · ")) return "ERRO · " + l.slice(7);
     return { sim: "SIM", "não": "NÃO", erro: "ERRO", segue: "", repete: "REPETE", fim: "DEPOIS" }[l] ?? l.toUpperCase();
   }
 
@@ -562,7 +582,7 @@
       out.push(secHTML("Só chega aqui quando", `<ul>${rw.map((t) => `<li>${rich(t)}</li>`).join("")}</ul>`));
     }
 
-    if (n.type === "condition" || n.type === "switch") {
+    if (isBranching(n)) {
       const rows = (OUT.get(n.id) || []).map((e) => {
         const t = BY_ID.get(e.to);
         const when = e.when ? `quando ${rich(e.when)}` : "";
@@ -628,12 +648,12 @@
     const loc = n.file ? `${esc(n.file.split("/").pop())}:${n.line}` : "";
     const sub = subtitle(n);
 
-    const branches = (n.type === "condition" || n.type === "switch" ? OUT.get(n.id) || [] : []).map((e) => {
+    const branches = (isBranching(n) ? OUT.get(n.id) || [] : []).map((e) => {
       const off = state.collapsed.has(e.key);
       const cnt = off ? 0 : hiddenIfCollapsed(e.key);
       if (!off && cnt === 0) return "";
       const lbl = edgeLabelText(e) || "segue";
-      return `<button class="branch ${tn(e.tone)}${off ? " off" : ""}" data-branch="${e.key}" title="${esc(e.when ? "Quando " + plain(e.when) : "")}">${off ? "▸ mostrar" : "▾ ocultar"} ${esc(lbl.toLowerCase())}${cnt ? ` · ${cnt} ${cnt === 1 ? "passo" : "passos"}` : ""}</button>`;
+      return `<button class="branch ${tn(e.tone)}${off ? " off" : ""}" data-branch="${e.key}" title="${esc(e.when ? "Quando " + plain(e.when) : "")}">${off ? "▸ mostrar" : "▾ ocultar"} ${esc(lbl.startsWith("ERRO · ") ? "erro · " + lbl.slice(7) : lbl.toLowerCase())}${cnt ? ` · ${cnt} ${cnt === 1 ? "passo" : "passos"}` : ""}</button>`;
     }).join("");
 
     el.innerHTML = `
@@ -654,7 +674,8 @@
   /* ------------------------------------------------------------ */
   /* Layout em camadas (top → bottom), espinha principal à esquerda */
   /* ------------------------------------------------------------ */
-  const CARD_W = 376, GAP_X = 64, GAP_Y = 92, PAD_X = 12, PAD_Y = 12;
+  const CARD_CLOSED = 376, CARD_OPEN = 560, GAP_X = 80, GAP_Y = 108, PAD_X = 16, PAD_Y = 16;
+  const CHAN_Y = 22, CHAN_X = 18, PORT_STEP = 22, PORT_SIDE = 58;
 
   function computeLayout() {
     const vis = visibleSet();
@@ -726,53 +747,131 @@
     return { nodes, edges, items, rowsArr, maxRow, vis };
   }
 
+  /** Trilhos paralelos: segmentos que se cruzam em X (ou Y) ganham canais distintos. */
+  function colorTracks(segs) {
+    const uniq = [];
+    const byKey = new Map();
+    for (const s of segs) {
+      const prev = byKey.get(s.key);
+      if (prev) {
+        prev.lo = Math.min(prev.lo, s.lo);
+        prev.hi = Math.max(prev.hi, s.hi);
+      } else {
+        const u = { key: s.key, lo: s.lo, hi: s.hi, ch: 0 };
+        byKey.set(s.key, u);
+        uniq.push(u);
+      }
+    }
+    uniq.sort((a, b) => a.lo - b.lo || a.hi - b.hi || String(a.key).localeCompare(String(b.key)));
+    const ends = [];
+    for (const s of uniq) {
+      let ch = -1;
+      for (let i = 0; i < ends.length; i++) if (s.lo > ends[i]) { ch = i; break; }
+      if (ch < 0) { ch = ends.length; ends.push(s.hi); }
+      else ends[ch] = s.hi;
+      s.ch = ch;
+    }
+    return { byKey, n: Math.max(1, ends.length) };
+  }
+
   function placeAndRoute(L) {
     const { edges, items, rowsArr, maxRow } = L;
     const H = new Map();
     for (const it of items.values()) if (it.real) H.set(it.id, CARDS.get(it.id).offsetHeight);
-    const rowH = rowsArr.map((row) => Math.max(0, ...row.filter((i) => i.real).map((i) => H.get(i.id))));
-    const rowY = [PAD_Y];
-    const gapBefore = [0];
-    for (let r = 1; r <= maxRow; r++) {
-      const g = rowH[r - 1] > 0 ? GAP_Y : 30;
-      gapBefore[r] = g;
-      rowY[r] = rowY[r - 1] + rowH[r - 1] + g;
-    }
-    const colX = (c) => PAD_X + c * (CARD_W + GAP_X);
-    const cx = (c) => colX(c) + CARD_W / 2;
-    let maxCol = 0;
-    for (const it of items.values()) maxCol = Math.max(maxCol, it.col);
+    const rowH = rowsArr.map((row) => Math.max(0, ...row.filter((i) => i.real).map((i) => H.get(i.id) || 0)));
 
-    // ramos recolhidos (stubs)
+    const colW = [];
+    const colHasReal = [];
+    let maxCol = 0;
+    for (const it of items.values()) {
+      maxCol = Math.max(maxCol, it.col);
+      if (!it.real) continue;
+      colHasReal[it.col] = true;
+      const w = state.open.has(it.id) ? CARD_OPEN : CARD_CLOSED;
+      colW[it.col] = Math.max(colW[it.col] || 0, w);
+    }
+    for (let c = 0; c <= maxCol; c++) colW[c] = colHasReal[c] ? (colW[c] || CARD_CLOSED) : 56;
+    const colX = (c) => {
+      let x = PAD_X;
+      for (let i = 0; i < c; i++) x += colW[i] + GAP_X;
+      return x;
+    };
+    const cx = (c) => colX(c) + colW[c] / 2;
+
     const stubs = [];
     for (const e of EDGES) {
       if (!state.collapsed.has(e.key) || !items.has(e.from)) continue;
       stubs.push(e);
     }
 
-    // portas de saída / entrada
+    const hSegs = Array.from({ length: maxRow + 1 }, () => []);
+    const vSegs = Array.from({ length: maxCol + 1 }, () => []);
+    for (const e of edges) {
+      const src = items.get(e.from);
+      let prevCol = src.col, prevRow = src.row;
+      for (let k = 1; k < e.chain.length; k++) {
+        const it = items.get(e.chain[k]);
+        if (it.col !== prevCol) hSegs[it.row].push({ key: e.key, lo: Math.min(prevCol, it.col), hi: Math.max(prevCol, it.col) });
+        if (it.col === prevCol || k > 1) vSegs[it.col].push({ key: e.key, lo: prevRow, hi: it.row });
+        prevCol = it.col;
+        prevRow = it.row;
+      }
+    }
+    const hTrack = hSegs.map((s) => colorTracks(s));
+    const vTrack = vSegs.map((s) => colorTracks(s));
+
+    const gapBefore = [0];
+    for (let r = 1; r <= maxRow; r++) {
+      const n = hTrack[r].n;
+      const hasH = hSegs[r].length > 0;
+      const base = rowH[r - 1] > 0 ? GAP_Y : 36;
+      gapBefore[r] = hasH ? Math.max(base, 52 + n * CHAN_Y) : base;
+    }
+    const rowY = [PAD_Y];
+    for (let r = 1; r <= maxRow; r++) rowY[r] = rowY[r - 1] + rowH[r - 1] + gapBefore[r];
+
+    const dummyX = (it, key) => {
+      const t = vTrack[it.col];
+      const n = t.n;
+      const i = t.byKey.get(key) ? t.byKey.get(key).ch : 0;
+      return cx(it.col) + (n > 1 ? (i - (n - 1) / 2) * CHAN_X : 0);
+    };
+    const horizY = (row, key) => {
+      const gap = gapBefore[row];
+      const ty = rowY[row];
+      const t = hTrack[row];
+      const n = t.n;
+      const i = t.byKey.get(key) ? t.byKey.get(key).ch : 0;
+      const top = ty - gap + gap * 0.42;
+      const bot = ty - 16;
+      if (n <= 1) return (top + bot) / 2;
+      return top + (i + 0.5) * ((bot - top) / n);
+    };
+
     const outPort = new Map(), inPort = new Map();
-    const assign = (list, dxOf, centerX, store, keyOf) => {
+    const assign = (list, dxOf, centerX, half, store, keyOf) => {
       const right = list.filter((x) => dxOf(x) > 0).sort((a, b) => dxOf(a) - dxOf(b));
       const left = list.filter((x) => dxOf(x) < 0).sort((a, b) => dxOf(b) - dxOf(a));
       const same = list.filter((x) => dxOf(x) === 0);
-      right.forEach((x, i) => store.set(keyOf(x), centerX + 46 + i * 14));
-      left.forEach((x, i) => store.set(keyOf(x), centerX - 46 - i * 14));
-      same.forEach((x, i) => store.set(keyOf(x), centerX + (same.length > 1 ? (i - (same.length - 1) / 2) * 14 : 0)));
+      const cap = Math.max(24, half - 18);
+      right.forEach((x, i) => store.set(keyOf(x), centerX + Math.min(cap, PORT_SIDE + i * PORT_STEP)));
+      left.forEach((x, i) => store.set(keyOf(x), centerX - Math.min(cap, PORT_SIDE + i * PORT_STEP)));
+      same.forEach((x, i) => store.set(keyOf(x), centerX + (same.length > 1 ? (i - (same.length - 1) / 2) * PORT_STEP : 0)));
     };
     for (const it of items.values()) {
       if (!it.real) continue;
+      const half = colW[it.col] / 2;
       const outs = edges.filter((e) => e.from === it.id).map((e) => ({ k: e.key, dx: items.get(e.chain[1]).col - it.col }));
       for (const s of stubs) if (s.from === it.id) outs.push({ k: s.key, dx: 1 });
-      assign(outs, (x) => x.dx, cx(it.col), outPort, (x) => x.k);
+      assign(outs, (x) => x.dx, cx(it.col), half, outPort, (x) => x.k);
       const ins = edges.filter((e) => e.to === it.id).map((e) => ({ k: e.key, dx: items.get(e.chain[e.chain.length - 2]).col - it.col }));
-      assign(ins.map((x) => ({ k: x.k, dx: -x.dx })), (x) => x.dx, cx(it.col), inPort, (x) => x.k);
+      assign(ins.map((x) => ({ k: x.k, dx: -x.dx })), (x) => x.dx, cx(it.col), half, inPort, (x) => x.k);
     }
 
     const geom = { rowY, rowH, H, colX, cx, maxCol };
     const paths = [];
     for (const e of edges) {
-      const src = items.get(e.from), dst = items.get(e.to);
+      const src = items.get(e.from);
       const sx = outPort.get(e.key) ?? cx(src.col);
       const sy = rowY[src.row] + H.get(src.id);
       const pts = [[sx, sy]];
@@ -781,15 +880,15 @@
       for (let k = 1; k < e.chain.length; k++) {
         const it = items.get(e.chain[k]);
         const last = k === e.chain.length - 1;
-        const tx = last ? (inPort.get(e.key) ?? cx(it.col)) : cx(it.col);
+        const tx = last ? (inPort.get(e.key) ?? cx(it.col)) : dummyX(it, e.key);
         const ty = rowY[it.row];
         if (Math.abs(curX - tx) > 0.5) {
-          const stagger = ((parseInt(e.key.slice(1), 10) % 3) - 1) * 6;
-          const midY = ty - gapBefore[it.row] / 2 + stagger;
+          const midY = horizY(it.row, e.key);
           pts.push([curX, midY], [tx, midY]);
           if (k === 1) label = { x: (curX + tx) / 2, y: midY };
         } else if (k === 1) {
-          label = { x: curX, y: curY + 18 };
+          const g = gapBefore[it.row] || GAP_Y;
+          label = { x: curX, y: curY + Math.max(22, g * 0.3) };
         }
         pts.push([tx, ty]);
         if (!last) {
@@ -801,6 +900,16 @@
       paths.push({ e, pts, label, rank: src.row });
     }
 
+    const labeled = paths.filter((p) => p.label && edgeLabelText(p.e));
+    labeled.sort((a, b) => a.label.y - b.label.y || a.label.x - b.label.x);
+    for (let i = 1; i < labeled.length; i++) {
+      const prev = labeled[i - 1].label, cur = labeled[i].label;
+      if (Math.abs(cur.x - prev.x) < 52 && Math.abs(cur.y - prev.y) < 18) {
+        cur.y = prev.y + 18;
+        if (Math.abs(cur.x - prev.x) < 28) cur.x += 26;
+      }
+    }
+
     const ghosts = stubs.map((e) => {
       const src = items.get(e.from);
       const x = outPort.get(e.key) ?? cx(src.col);
@@ -808,7 +917,7 @@
       return { e, x, y };
     });
 
-    const width = colX(maxCol) + CARD_W + PAD_X;
+    const width = colX(maxCol) + colW[maxCol] + PAD_X;
     const height = rowY[maxRow] + rowH[maxRow] + PAD_Y + (ghosts.length ? 40 : 0);
     return { geom, paths, ghosts, width, height };
   }

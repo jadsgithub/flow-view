@@ -1,6 +1,6 @@
 {
   "name": "flow-view",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Transforma uma rota/endpoint em uma história interativa: diagrama HTML com linguagem de negócio e modo técnico. Análise estática, zero dependências.",
   "type": "module",
   "engines": {
@@ -14,7 +14,8 @@
     "check": "node scripts/check.mjs",
     "test": "node --test test/*.test.mjs",
     "verify": "npm run check && npm test",
-    "demo": "node ./flow-view/bin/flow-view.mjs --root examples/sample-app --method POST --path /api/orders --out flow-view-output"
+    "demo": "node ./flow-view/bin/flow-view.mjs --root examples/sample-app --method POST --path /api/orders --out flow-view-output",
+    "demo:laravel": "node ./flow-view/bin/flow-view.mjs --root examples/laravel-app --method POST --path /api/orders --out flow-view-output-laravel"
   },
   "keywords": [
     "flow",
@@ -26,6 +27,8 @@
     "express",
     "fastify",
     "nextjs",
+    "laravel",
+    "php",
     "cursor",
     "claude",
     "agent-skill"

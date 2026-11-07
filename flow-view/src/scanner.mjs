@@ -1,14 +1,18 @@
 /**
  * Localiza o handler de uma rota HTTP no código-fonte (heurística por regex).
- * Suporta: Express, Fastify, Hono, Next.js App Router, FastAPI, Flask, Gin.
+ * Suporta: PHP/Laravel (primeiro da lista), Express, Fastify, Hono, Next.js App Router, FastAPI, Flask, Gin.
  */
 
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { MAX_FILE_BYTES, MAX_FILES, MAX_DEPTH, escapeRegExp } from "./security.mjs";
+import { createPhpProject, isLaravelProject } from "./php/project.mjs";
+import { loadLaravelRoutes, matchRoutes, summarizeRoutes } from "./php/routes.mjs";
 
 const IGNORE_DIRS = new Set([
   "node_modules",
+  ".flow-view",
+  ".archify",
   ".git",
   "dist",
   "build",
@@ -240,6 +244,14 @@ export async function findRouteHandler(opts) {
   const root = opts.root;
   const method = normMethod(opts.method);
   const path = normPath(opts.path);
+
+  // PHP / Laravel: rotas declaradas em routes/*.php (lidas como texto, nunca executadas)
+  let laravelCandidates = [];
+  if (isLaravelProject(root)) {
+    const found = findLaravelRoute(root, method, path);
+    if (found.ok) return found;
+    laravelCandidates = found.candidates;
+  }
   const files = await walkFiles(root, root);
   const hits = [];
 
@@ -275,8 +287,10 @@ export async function findRouteHandler(opts) {
   if (hits.length === 0) {
     return {
       ok: false,
-      error: `Nenhum handler encontrado para ${method} ${path}`,
-      candidates: [],
+      error:
+        `Nenhum handler encontrado para ${method} ${path}` +
+        (laravelCandidates.length ? `\nRotas parecidas no projeto Laravel:\n  ${laravelCandidates.join("\n  ")}` : ""),
+      candidates: laravelCandidates,
     };
   }
 
@@ -293,4 +307,42 @@ export async function findRouteHandler(opts) {
     ...best,
     alternates: hits.slice(1),
   };
+}
+
+/** Carrega as rotas do Laravel (ou `[]`). */
+export function listLaravelRoutes(root) {
+  if (!isLaravelProject(root)) return null;
+  return summarizeRoutes(loadLaravelRoutes(createPhpProject(root)));
+}
+
+function findLaravelRoute(root, method, path) {
+  const project = createPhpProject(root);
+  const routes = loadLaravelRoutes(project);
+  const hits = matchRoutes(routes, method, path);
+  if (hits.length) {
+    const best = hits[0];
+    const a = best.action;
+    const handlerName =
+      a.kind === "controller" ? `${String(a.classRef).split("\\").pop()}@${a.method}` : a.kind === "closure" ? "Closure" : a.kind === "view" ? `view:${a.view}` : "redirect";
+    return {
+      ok: true,
+      framework: "laravel",
+      file: best.rel,
+      line: best.line,
+      absFile: best.file,
+      routePath: best.uri,
+      method: best.methods.filter((m) => m !== "HEAD").join("|"),
+      handlerName,
+      match: `${best.methods.filter((m) => m !== "HEAD").join("|")} ${best.uri}`,
+      route: best,
+      alternates: hits.slice(1).map((r) => ({ framework: "laravel", file: r.rel, line: r.line, routePath: r.uri })),
+    };
+  }
+  // sugestões: rotas que compartilham o início do caminho
+  const first = String(path).split("/").filter(Boolean).slice(0, 2).join("/");
+  const sim = summarizeRoutes(routes)
+    .filter((r) => first && r.path.includes(first.split("/")[0]))
+    .slice(0, 8)
+    .map((r) => `${r.method} ${r.path}  →  ${r.handler}`);
+  return { ok: false, candidates: sim };
 }

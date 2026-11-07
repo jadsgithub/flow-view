@@ -7,6 +7,8 @@ import { buildJsCfg } from "./js-cfg.mjs";
 import { matchClose } from "./jsparse.mjs";
 import { createCalleeResolver } from "./callee.mjs";
 import { findRequestInputs, describeInputs } from "./narrate.mjs";
+import { buildLaravelFlow } from "./php/laravel.mjs";
+import { MAX_NODES } from "./security.mjs";
 
 let nodeSeq = 0;
 function nextId(prefix = "n") {
@@ -210,6 +212,9 @@ export async function traceRoute(input) {
   const edges = [];
 
   const pushNode = (partial) => {
+    if (nodes.length >= MAX_NODES) {
+      throw new Error(`O fluxo desta rota passa de ${MAX_NODES} passos (limite de segurança). Escolha uma rota menor ou divida o handler.`);
+    }
     const id = partial.id || nextId();
     nodes.push({
       id,
@@ -217,7 +222,7 @@ export async function traceRoute(input) {
       label: partial.label || "",
       technical: partial.technical || "",
       symbol: partial.symbol || {},
-      file: scan.file,
+      file: partial.file ?? scan.file,
       line: partial.line ?? baseLine,
       snippet: partial.snippet || "",
       explanation: partial.explanation ?? "",
@@ -226,6 +231,20 @@ export async function traceRoute(input) {
     });
     return id;
   };
+
+  if (scan.framework === "laravel") {
+    const rootDir = input.rootDir || deriveRoot(filePath, scan.file);
+    const entryId = pushNode({
+      type: "route_entry",
+      label: `Entrada laravel: ${scan.routePath || ""}`,
+      technical: scan.handlerName || "",
+      line: scan.line,
+      symbol: { functionName: scan.handlerName || null, className: null, variables: [], params: [], returnType: null },
+    });
+    const entryNode = nodes.find((n) => n.id === entryId);
+    const r = buildLaravelFlow({ scan, root: rootDir, pushNode, edges, entryId, entryNode });
+    return { nodes, edges, entry: entryId, handlerBody: r.handlerBody.slice(0, 8000), handler: r.handler, laravel: r.meta };
+  }
 
   const entryId = pushNode({
     type: "route_entry",

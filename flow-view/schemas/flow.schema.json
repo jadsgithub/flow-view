@@ -90,6 +90,10 @@
             "switch",
             "catch",
             "group",
+            "middleware",
+            "database",
+            "queue",
+            "notify",
             "unknown"
           ]
         },

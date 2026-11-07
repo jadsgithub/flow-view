@@ -10,7 +10,7 @@ import { writeFile, mkdir, readFile, stat } from "node:fs/promises";
 import { join, resolve, parse as parsePath } from "node:path";
 import { spawn } from "node:child_process";
 
-import { findRouteHandler } from "../src/scanner.mjs";
+import { findRouteHandler, listLaravelRoutes } from "../src/scanner.mjs";
 import { traceRoute } from "../src/tracer.mjs";
 import { buildFlowJson } from "../src/builder.mjs";
 import { renderHtml } from "../src/renderer.mjs";
@@ -23,15 +23,18 @@ const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIO
 class UsageError extends Error {}
 
 const VALUE_FLAGS = new Set(["--root", "--method", "--path", "--out", "--depth", "--render-only"]);
-const BOOL_FLAGS = new Set(["--no-open", "-h", "--help", "-v", "--version"]);
+const BOOL_FLAGS = new Set(["--no-open", "--open", "--json", "--list-routes", "-h", "--help", "-v", "--version"]);
 
 function parseArgs(argv) {
   const out = {
     root: ".",
     method: "GET",
     path: "",
-    outDir: "flow-view-output",
+    outDir: null,
     noOpen: false,
+    open: false,
+    json: false,
+    listRoutes: false,
     renderOnly: null,
     help: false,
     version: false,
@@ -55,6 +58,9 @@ function parseArgs(argv) {
       }
     } else if (BOOL_FLAGS.has(a)) {
       if (a === "--no-open") out.noOpen = true;
+      else if (a === "--open") out.open = true;
+      else if (a === "--json") out.json = true;
+      else if (a === "--list-routes") out.listRoutes = true;
       else if (a === "-h" || a === "--help") out.help = true;
       else out.version = true;
     } else {
@@ -77,13 +83,16 @@ flow-view v${VERSION} — diagrama de fluxo por rota
 
 Uso:
   flow-view --root . --method POST --path /api/checkout
+  flow-view --root . --list-routes            # lista as rotas (Laravel)
 
 Opções:
   --root <dir>          Raiz do projeto analisado (default: .). Nada fora dela é lido.
   --method <VERBO>      GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS ou ANY (default: GET)
   --path <rota>         Caminho da rota, ex: /api/orders
-  --out <dir>           Pasta de saída (default: flow-view-output)
-  --no-open             Não abre o navegador ao terminar
+  --out <dir>           Pasta de saída (default: <root>/.flow-view/<método>-<rota>-<data>/)
+  --list-routes         Lista as rotas encontradas (Laravel) e sai
+  --json                Imprime só um recibo JSON (para agentes/scripts); não abre o navegador
+  --open / --no-open    Força abrir / não abrir o navegador (default: abre, exceto com --json)
   --render-only <arq>   Só gera o index.html a partir de um flow.json existente
   -v, --version         Mostra a versão
   -h, --help            Mostra esta ajuda
@@ -131,7 +140,39 @@ async function main() {
   }
 
   const root = resolve(args.root);
-  const outDir = resolve(args.outDir);
+  const shouldOpen = args.open || (!args.noOpen && !args.json);
+  const say = (...m) => {
+    if (!args.json) console.log(...m);
+  };
+  const fail = (code, message, extra = {}) => {
+    if (args.json) console.log(JSON.stringify({ ok: false, version: VERSION, error: message, ...extra }, null, 2));
+    else console.error(message);
+    process.exit(code);
+  };
+
+  if (args.listRoutes) {
+    const rootStat0 = await stat(root).catch(() => null);
+    if (!rootStat0 || !rootStat0.isDirectory()) throw new UsageError(`--root não é um diretório: ${root}`);
+    const list = listLaravelRoutes(root);
+    if (list === null) {
+      return fail(2, "Listagem de rotas disponível apenas para projetos Laravel. Informe --method e --path diretamente.", { routes: [] });
+    }
+    if (args.json) console.log(JSON.stringify({ ok: true, version: VERSION, framework: "laravel", routes: list }, null, 2));
+    else {
+      console.log(`${list.length} rota(s) em ${root}:\n`);
+      for (const r of list) console.log(`  ${String(r.method).padEnd(14)} ${r.path.padEnd(42)} ${r.handler}${r.name ? `  [${r.name}]` : ""}`);
+    }
+    return;
+  }
+
+  const slug = (v) =>
+    String(v)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "root";
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..*$/, "").replace("T", "-");
+  const outDir = args.outDir ? resolve(args.outDir) : join(root, ".flow-view", `${args.method.toLowerCase()}-${slug(args.path)}-${stamp}`);
   if (outDir === parsePath(outDir).root) throw new UsageError("--out não pode ser a raiz do sistema de arquivos.");
 
   if (args.renderOnly) {
@@ -153,8 +194,7 @@ async function main() {
 
   const scan = await findRouteHandler({ root, method: args.method, path: args.path });
   if (!scan.ok) {
-    console.error(scan.error || "Rota não encontrada");
-    process.exit(2);
+    return fail(2, scan.error || "Rota não encontrada", { route: { method: args.method, path: args.path } });
   }
 
   const trace = await traceRoute({ scan, rootDir: root });
@@ -171,15 +211,42 @@ async function main() {
   await mkdir(outDir, { recursive: true });
   const flowPath = join(outDir, "flow.json");
   await writeFile(flowPath, JSON.stringify(redactDeep(flow), null, 2), "utf8");
-  console.log("IR salvo:", flowPath);
+  say("IR salvo:", flowPath);
 
   const htmlPath = await renderHtml({ flow, outDir });
-  console.log("HTML:", htmlPath);
+  say("HTML:", htmlPath);
 
-  if (!args.noOpen) await openBrowser(htmlPath);
+  let opened = false;
+  if (shouldOpen) opened = await openBrowser(htmlPath);
+
+  if (args.json) {
+    const decisions = flow.nodes.filter((n) => n.meta && n.meta.pos && n.meta.neg).length;
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          version: VERSION,
+          route: { method: args.method, path: args.path, matched: scan.routePath || null, name: flow.meta.entry?.route?.routeName || null, middleware: flow.meta.entry?.route?.middleware || [] },
+          framework: flow.meta.entry?.framework || scan.framework || null,
+          entry: { file: flow.meta.entry?.file || scan.file, line: flow.meta.entry?.line || scan.line, handler: flow.meta.entry?.handler?.name || scan.handlerName || null },
+          summary: { steps: flow.nodes.length, decisions, outcomes: flow.meta.outcomes.length, success: flow.meta.outcomes.filter((o) => o.tone !== "error").length },
+          outDir,
+          files: { html: htmlPath, json: flowPath },
+          opened,
+        },
+        null,
+        2
+      )
+    );
+  }
 }
 
 main().catch((err) => {
+  if (process.argv.includes("--json")) {
+    const message = err && err.message ? String(err.message) : "Erro inesperado";
+    console.log(JSON.stringify({ ok: false, version: VERSION, error: message, usage: err instanceof UsageError }, null, 2));
+    process.exit(1);
+  }
   if (err instanceof UsageError) {
     console.error(`Erro: ${err.message}\nUse --help para ver as opções.`);
     process.exit(1);

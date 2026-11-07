@@ -17,7 +17,7 @@ const errors = [];
 const fail = (m) => errors.push(m);
 const read = (p) => readFileSync(join(root, p), "utf8");
 
-const SKIP = new Set([".git", "node_modules", "flow-view-output", ".DS_Store"]);
+const SKIP = new Set([".git", "node_modules", "flow-view-output", "flow-view-output-laravel", ".flow-view", ".DS_Store"]);
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     if (SKIP.has(name)) continue;
