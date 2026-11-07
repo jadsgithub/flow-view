@@ -1,0 +1,48 @@
+name: Relatar um bug
+description: Algo não funciona como esperado
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por ajudar! **Não cole segredos, tokens nem código confidencial.**
+        Falha de segurança? Use o [relato privado](https://github.com/jadsgithub/flow-view/security/advisories/new).
+  - type: input
+    id: version
+    attributes:
+      label: Versão do Flow View
+      description: Saída de `flow-view --version`
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Ambiente
+      placeholder: "macOS 15 / Node 22.11"
+    validations:
+      required: true
+  - type: input
+    id: framework
+    attributes:
+      label: Framework / linguagem da rota
+      placeholder: "Express, Fastify, Next.js, FastAPI..."
+  - type: textarea
+    id: command
+    attributes:
+      label: Comando executado
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: handler
+    attributes:
+      label: Trecho mínimo do handler que reproduz o problema
+      description: Reduza ao mínimo e remova qualquer dado sensível.
+      render: javascript
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que você esperava e o que aconteceu
+    validations:
+      required: true

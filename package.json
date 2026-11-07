@@ -1,0 +1,57 @@
+{
+  "name": "flow-view",
+  "version": "0.1.0",
+  "description": "Transforma uma rota/endpoint em uma história interativa: diagrama HTML com linguagem de negócio e modo técnico. Análise estática, zero dependências.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "flow-view": "./flow-view/bin/flow-view.mjs"
+  },
+  "scripts": {
+    "flow-view": "node ./flow-view/bin/flow-view.mjs",
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "verify": "npm run check && npm test",
+    "demo": "node ./flow-view/bin/flow-view.mjs --root examples/sample-app --method POST --path /api/orders --out flow-view-output"
+  },
+  "keywords": [
+    "flow",
+    "diagram",
+    "endpoint",
+    "route",
+    "static-analysis",
+    "documentation",
+    "express",
+    "fastify",
+    "nextjs",
+    "cursor",
+    "claude",
+    "agent-skill"
+  ],
+  "author": "Flow View contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jadsgithub/flow-view.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jadsgithub/flow-view/issues"
+  },
+  "homepage": "https://github.com/jadsgithub/flow-view#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "files": [
+    "SKILL.md",
+    "README.md",
+    "README.en.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE",
+    "flow-view",
+    ".cursor-plugin"
+  ]
+}

@@ -1,0 +1,70 @@
+name: Release
+
+# Dispara ao empurrar uma tag SemVer (vX.Y.Z ou vX.Y.Z-rc.N).
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publica a release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write # criar a release
+      id-token: write # assinatura (OIDC) da atestação de proveniência
+      attestations: write # gravar a atestação
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout (histórico completo)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: A tag precisa apontar para um commit da main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+
+      - name: Tag == package.json == plugin.json == CHANGELOG
+        run: node scripts/check.mjs --tag "$TAG"
+
+      - name: Testes
+        run: npm test
+
+      - name: Empacota (npm pack) e calcula SHA-256
+        run: |
+          npm pack --silent
+          sha256sum flow-view-*.tgz > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Notas da versão (a partir do CHANGELOG)
+        run: node scripts/release-notes.mjs "${TAG#v}" > RELEASE_NOTES.md
+
+      - name: Atesta a proveniência do pacote (SLSA build provenance)
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: flow-view-*.tgz
+
+      - name: Cria a GitHub Release
+        run: |
+          flags=()
+          case "$TAG" in *-*) flags+=(--prerelease) ;; esac
+          gh release create "$TAG" flow-view-*.tgz SHA256SUMS \
+            --title "Flow View $TAG" \
+            --notes-file RELEASE_NOTES.md \
+            --verify-tag \
+            "${flags[@]}"

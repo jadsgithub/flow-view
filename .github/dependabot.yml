@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Mantém as Actions (fixadas por SHA) atualizadas por PRs revisáveis.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # O projeto não tem dependências hoje; isto cobre devDependencies futuras.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore"
+    open-pull-requests-limit: 5

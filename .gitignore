@@ -1,0 +1,28 @@
+# dependências e saídas geradas
+node_modules/
+flow-view-output/
+demo-output/
+coverage/
+*.tgz
+
+# segredos: nunca versionar
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+secrets/
+*.secret
+
+# sistema / editor / logs
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.idea/
+.vscode/
+*.swp

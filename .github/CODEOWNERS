@@ -1,0 +1,12 @@
+# Todo PR precisa de revisão de quem é dono do código afetado.
+*                       @jadsgithub
+
+# Áreas sensíveis (segurança e cadeia de suprimentos)
+/.github/               @jadsgithub
+/SECURITY.md            @jadsgithub
+/scripts/               @jadsgithub
+/flow-view/src/security.mjs  @jadsgithub
+/flow-view/src/redact.mjs    @jadsgithub
+/flow-view/src/renderer.mjs  @jadsgithub
+/flow-view/templates/   @jadsgithub
+/install.sh             @jadsgithub

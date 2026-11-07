@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Reportar uma vulnerabilidade (privado)
+    url: https://github.com/jadsgithub/flow-view/security/advisories/new
+    about: Não abra issue pública para falhas de segurança. Use o relato privado.
+  - name: Dúvidas e ideias
+    url: https://github.com/jadsgithub/flow-view/discussions
+    about: Perguntas de uso e discussões gerais.

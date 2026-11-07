@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/jadsgithub/flow-view/main/flow-view/schemas/flow.schema.json",
+  "title": "FlowViewIR",
+  "type": "object",
+  "required": ["meta", "nodes", "edges", "entry"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "route"],
+      "properties": {
+        "version": { "type": "string", "description": "Versão do formato do IR (não é a versão do Flow View)" },
+        "generator": {
+          "type": "object",
+          "description": "Ferramenta e versão (SemVer) que gerou este arquivo",
+          "properties": { "name": { "type": "string" }, "version": { "type": "string" } }
+        },
+        "route": {
+          "type": "object",
+          "required": ["method", "path"],
+          "properties": {
+            "method": { "type": "string" },
+            "path": { "type": "string" }
+          }
+        },
+        "entry": {
+          "type": "object",
+          "properties": {
+            "file": { "type": "string" },
+            "line": { "type": "integer" },
+            "framework": { "type": "string" }
+          }
+        },
+        "summary": { "type": "string" },
+        "intro": { "type": "string", "description": "Parágrafo de abertura contando o endpoint em linguagem natural" },
+        "inputs": { "type": "array", "items": { "type": "object" } },
+        "outcomes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "nodeId": { "type": "string" },
+              "status": { "type": "integer" },
+              "statusText": { "type": "string" },
+              "tone": { "enum": ["ok", "error", "neutral"] },
+              "reachedWhen": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "entry": { "type": "string", "description": "id do primeiro nó" },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    }
+  },
+  "$defs": {
+    "symbol": {
+      "type": "object",
+      "properties": {
+        "functionName": { "type": ["string", "null"] },
+        "className": { "type": ["string", "null"] },
+        "variables": { "type": "array", "items": { "type": "string" } },
+        "params": { "type": "array", "items": { "type": "string" } },
+        "returnType": { "type": ["string", "null"] }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "route_entry",
+            "condition",
+            "function",
+            "external_call",
+            "return",
+            "throw",
+            "validation",
+            "assignment",
+            "loop",
+            "switch",
+            "catch",
+            "group",
+            "unknown"
+          ]
+        },
+        "label": { "type": "string" },
+        "technical": { "type": "string" },
+        "symbol": { "$ref": "#/$defs/symbol" },
+        "file": { "type": "string" },
+        "line": { "type": "integer" },
+        "snippet": { "type": "string" },
+        "explanation": {
+          "type": "string",
+          "description": "Texto em linguagem clara: o que a etapa faz e o que valida"
+        },
+        "branch": {
+          "type": ["string", "null"],
+          "enum": ["true", "false", "catch", "finally", "case", null]
+        },
+        "meta": {
+          "type": "object",
+          "description": "Dados narrativos do passo",
+          "properties": {
+            "tone": { "enum": ["ok", "error", "neutral"] },
+            "facts": {
+              "type": "array",
+              "description": "Pares chave/valor: o que o passo recebe, valida ou devolve",
+              "items": {
+                "type": "object",
+                "properties": { "k": { "type": "string" }, "v": { "type": "string" } }
+              }
+            },
+            "reachedWhen": {
+              "type": "array",
+              "description": "Condições que precisam ser verdadeiras para o fluxo chegar neste passo",
+              "items": { "type": "string" }
+            },
+            "pos": { "type": "string", "description": "Condição (decisão): quando o ramo 'sim' acontece" },
+            "neg": { "type": "string", "description": "Condição (decisão): quando o ramo 'não' acontece" },
+            "outcome": {
+              "type": "object",
+              "properties": {
+                "status": { "type": "integer" },
+                "statusText": { "type": "string" },
+                "tone": { "enum": ["ok", "error", "neutral"] }
+              }
+            },
+            "callee": {
+              "type": "object",
+              "description": "Definição resolvida da função chamada e resumo do que ela faz por dentro",
+              "properties": {
+                "name": { "type": "string" },
+                "file": { "type": "string" },
+                "line": { "type": "integer" },
+                "className": { "type": ["string", "null"] },
+                "params": { "type": "array", "items": { "type": "string" } },
+                "summary": { "type": "array", "items": { "type": "object" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "label": { "type": "string" },
+        "tone": { "enum": ["ok", "error", "neutral"] },
+        "when": { "type": "string", "description": "Em linguagem natural: quando este caminho é seguido" }
+      }
+    }
+  }
+}
