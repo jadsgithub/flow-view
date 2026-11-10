@@ -3,7 +3,7 @@ name: flow-view
 description: "Gera uma história interativa (HTML standalone, modo Negócio e modo Técnico) do que acontece em UMA rota/endpoint: middlewares, FormRequest/validação, autorização, controller, services, Eloquent, exceções, jobs/eventos e cada resposta possível (200, 401, 403, 404, 422, 409…). Foco principal em PHP/Laravel; também Express, Fastify, Hono, Next.js, FastAPI, Flask e Gin. Análise 100% estática, sem executar o código. Use quando o usuário pedir para entender, explicar, documentar ou desenhar o fluxo de um endpoint/rota (ex.: 'mostre o fluxo de POST /api/orders', 'o que acontece em /checkout?', 'explique essa rota para o time de negócio', 'diagrama do FormRequest/controller'). Não serve para dashboards nem para diagramas de arquitetura geral."
 license: MIT
 metadata:
-  version: "0.2.0"
+  version: "0.3.0"
   stack-principal: "PHP / Laravel"
 ---
 
@@ -17,7 +17,14 @@ A análise é **estática**: o código do projeto **nunca é executado** (nada d
 
 Rode os comandos a partir da **raiz do projeto analisado** (o workspace do usuário). Substitua `<skill>` pelo caminho absoluto desta pasta (onde este `SKILL.md` está instalado, ex.: `~/.agents/skills/flow-view`).
 
-Cada pedido gera a sua própria pasta `.flow-view/<método>-<rota>-<AAAAMMDD-HHMMSS>/` dentro do projeto, com `index.html` (o diagrama) e `flow.json` (os dados). Um novo pedido cria uma nova pasta; nunca sobrescreva a anterior.
+Cada pedido gera a sua própria pasta `<método>-<rota>-<AAAAMMDD-HHMMSS>/`, com o HTML **do mesmo nome** (`post-api-orders-20261107-172702.html`) e `flow.json`. Um novo pedido cria uma nova pasta; nunca sobrescreva a anterior.
+
+**Onde gravar** — pergunte **uma vez**, a menos que o usuário já tenha dito o destino:
+
+- **Padrão** (se o usuário não se importar): pasta do projeto, `.flow-view/<método>-<rota>-<data>/`.
+- **Outro local** (Desktop, pasta de docs, fora do repositório): `--out <caminho absoluto>`. Expande `~` (`~/Desktop`).
+
+Não grave no projeto se o usuário pediu outro lugar.
 
 ### 1. Descobrir a rota (Laravel)
 
@@ -33,11 +40,13 @@ Escolha a rota que corresponde ao pedido. Se houver mais de uma plausível, perg
 
 ```bash
 node <skill>/flow-view/bin/flow-view.mjs --root . --method POST --path /api/orders --json
+# outro local, se o usuário pediu:
+node <skill>/flow-view/bin/flow-view.mjs --root . --method POST --path /api/orders --out ~/Desktop --json
 ```
 
 - `--path` aceita a URL real (`/api/orders/42`) ou o padrão da rota (`/api/orders/{order}`).
 - Com `--json` o comando imprime **só** um recibo JSON e não abre o navegador (use `--open` se o usuário pedir para abrir).
-- Para escolher a pasta de saída: `--out <dir>`.
+- `--out <dir>` grava nessa pasta (pode ser fora do projeto). Sem `--out`, usa `<root>/.flow-view/<método>-<rota>-<data>/`.
 
 Recibo de sucesso (campos úteis):
 
@@ -49,7 +58,7 @@ Recibo de sucesso (campos úteis):
   "entry": { "file": "routes/api.php", "line": 11, "handler": "OrderController::store" },
   "summary": { "steps": 23, "decisions": 6, "outcomes": 9, "success": 1 },
   "outDir": ".../.flow-view/post-api-orders-20261107-172702",
-  "files": { "html": ".../index.html", "json": ".../flow.json" }
+  "files": { "html": ".../post-api-orders-20261107-172702.html", "json": ".../flow.json" }
 }
 ```
 
@@ -59,7 +68,7 @@ Recibo de falha (`ok: false`, código de saída ≠ 0): leia `error` (ele sugere
 
 Em poucas linhas, em português:
 
-- o caminho do `index.html` (link clicável) e que ele abre direto no navegador;
+- o caminho do HTML (link clicável; o arquivo tem o nome do endpoint) e que ele abre direto no navegador;
 - o resumo: quantos passos, decisões e desfechos (`success` vs. erros) e os 2–4 desfechos mais relevantes (ex.: *401 sem login, 403 sem permissão, 422 dados inválidos, 201 criado*);
 - qualquer limitação que o recibo/`flow.json` indique (ex.: trecho dinâmico que não pôde ser resolvido).
 
@@ -105,7 +114,7 @@ A skill é a forma principal, mas o mesmo motor funciona como:
 | `--path <rota>` | Caminho real ou padrão da rota |
 | `--list-routes` | Lista as rotas encontradas (Laravel) e sai |
 | `--json` | Imprime só o recibo JSON; não abre o navegador |
-| `--out <dir>` | Pasta de saída (default: `<root>/.flow-view/<método>-<rota>-<data>/`) |
+| `--out <dir>` | Pasta de saída; pode ser fora do projeto. Default: `<root>/.flow-view/<método>-<rota>-<data>/`. O HTML se chama `<método>-<rota>-<data>.html` |
 | `--open` / `--no-open` | Força abrir / não abrir o navegador |
 | `--render-only <flow.json>` | Só gera o HTML a partir de um IR existente |
 | `-v`, `--version` / `-h`, `--help` | Versão (SemVer) e ajuda |

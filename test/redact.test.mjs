@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { redactString, redactDeep, REDACTED } from "../flow-view/src/redact.mjs";
-import { tmp, write, cleanup, runCli } from "./helpers.mjs";
+import { tmp, write, cleanup, runCli, htmlPath } from "./helpers.mjs";
 
 const SECRETS = {
   aws: "AKIAIOSFODNN7EXAMPLE",
@@ -67,8 +67,8 @@ test("fim a fim: segredo no código não aparece em flow.json nem em index.html"
     const out = join(base, "out");
     const r = runCli(["--root", base, "--method", "GET", "--path", "/pay", "--out", out]);
     assert.equal(r.status, 0, r.stderr);
-    for (const f of ["flow.json", "index.html"]) {
-      const txt = readFileSync(join(out, f), "utf8");
+    for (const f of [join(out, "flow.json"), htmlPath(out)]) {
+      const txt = readFileSync(f, "utf8");
       assert.ok(!txt.includes("sk_live_ccccc"), `${f} contém a chave`);
       assert.ok(!txt.includes("SuperSenha123"), `${f} contém a senha`);
     }

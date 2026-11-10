@@ -7,6 +7,15 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-10
+
+HTML nomeado pelo endpoint e pasta de saída escolhível; fluxo Laravel mais fiel e diagrama mais legível.
+
+### Adicionado
+
+- O HTML gerado usa o **mesmo nome da pasta do pedido** (`post-api-orders-20261107-181508.html` em vez de `index.html`), para o arquivo continuar reconhecível fora da pasta.
+- Destino da saída: `--out` pode ser qualquer pasta (inclusive fora do projeto; `~/Desktop` é expandido). A skill pergunta uma vez onde gravar; o padrão continua `<projeto>/.flow-view/`.
+
 ### Corrigido
 
 - Middleware Laravel que **encaminha** `$next` (ex.: Passport `CheckToken` envolvendo a pipeline) deixa de virar um
@@ -91,6 +100,7 @@ Primeira versão pública.
 - Validação estrita dos argumentos do CLI e do IR em `--render-only`; navegador aberto sem shell.
 - Zero dependências de runtime; Actions fixadas por SHA; CodeQL, Scorecard, Dependabot e Dependency Review.
 
-[Unreleased]: https://github.com/jadsgithub/flow-view/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/jadsgithub/flow-view/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/jadsgithub/flow-view/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jadsgithub/flow-view/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jadsgithub/flow-view/releases/tag/v0.1.0

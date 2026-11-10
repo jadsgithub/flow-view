@@ -12,11 +12,11 @@ flowchart LR
   D --> R[Redação de segredos]
   R --> E[flow.json]
   R --> F[Renderer + CSP]
-  F --> G[index.html<br/>estático, sem rede]
+  F --> G[HTML standalone<br/>estático, sem rede]
 ```
 
 - **Não executa** o código analisado, **não instala** dependências do projeto-alvo, **não abre conexões de rede**.
-- Escreve somente `flow.json` e `index.html` na pasta `--out`.
+- Escreve somente `flow.json` e o HTML nomeado pelo endpoint na pasta `--out`.
 - Não tem telemetria.
 
 ## 2. Ativos
@@ -25,7 +25,7 @@ flowchart LR
 | ----- | --------------- |
 | Máquina e arquivos de quem roda a ferramenta | Não podem ser lidos/alterados por um repositório hostil |
 | Segredos presentes no código analisado | Não podem vazar para o HTML compartilhado |
-| Quem abre o `index.html` | Não pode ser alvo de script malicioso vindo do código analisado |
+| Quem abre o HTML gerado | Não pode ser alvo de script malicioso vindo do código analisado |
 | Integridade das releases | Usuários precisam confiar no que baixam |
 
 ## 3. Atores e premissas de confiança
@@ -62,7 +62,7 @@ flowchart LR
 2. **O HTML contém trechos do seu código.** Se o código é sigiloso, o HTML também é.
 3. **Parsers por regex/heurística** podem interpretar mal construções raras; o efeito é um diagrama incorreto, não execução de código. Relate como bug.
 4. A CSP via `<meta>` não pode definir `frame-ancestors`: se você hospedar o HTML, adicione cabeçalhos próprios (`frame-ancestors 'none'`, `X-Content-Type-Options: nosniff`).
-5. Não protegemos contra alguém com acesso de escrita à pasta `--out` ou ao próprio `index.html`.
+5. Não protegemos contra alguém com acesso de escrita à pasta `--out` ou ao próprio HTML gerado.
 
 ## 6. Como validar (checklist para revisores)
 
@@ -70,5 +70,5 @@ flowchart LR
 npm run verify                       # sintaxe, versões, testes (incluem os casos T1–T10)
 rg -n "eval\(|new Function|child_process" flow-view/   # só deve aparecer o spawn do navegador
 node flow-view/bin/flow-view.mjs --root examples/sample-app --method POST --path /api/orders --out /tmp/out --no-open
-grep -c "http-equiv=\"Content-Security-Policy\"" /tmp/out/index.html   # deve ser 1
+grep -c "http-equiv=\"Content-Security-Policy\"" /tmp/out/*.html   # deve ser 1
 ```

@@ -31,6 +31,6 @@ node flow-view/bin/flow-view.mjs --root examples/laravel-app --method POST --pat
 node flow-view/bin/flow-view.mjs --root examples/laravel-app --method GET  --path /api/admin/reports/sales
 ```
 
-`--path` aceita a URL real (`/api/orders/42`) ou o padrão (`/api/orders/{order}`). A saída vai para `examples/laravel-app/.flow-view/<método>-<rota>-<data>/` (ignorada pelo git); use `--out` para escolher outra pasta.
+`--path` aceita a URL real (`/api/orders/42`) ou o padrão (`/api/orders/{order}`). A saída vai para `examples/laravel-app/.flow-view/<método>-<rota>-<data>/<método>-<rota>-<data>.html` (ignorada pelo git); use `--out ~/Desktop` (ou outra pasta) para gravar fora do projeto.
 
 Como skill de agente: *"Use o Flow View e mostre o fluxo de `POST /api/orders`."*

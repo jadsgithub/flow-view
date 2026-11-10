@@ -19,4 +19,4 @@ node flow-view/bin/flow-view.mjs --root examples/sample-app --method GET --path 
 node flow-view/bin/flow-view.mjs --root examples/sample-app --method GET --path /api/complex --out flow-view-output --no-open
 ```
 
-Abra `flow-view-output/index.html` e clique nos cards para ler a explicação de cada passo. Use os botões de ramo nas decisões para ocultar/mostrar caminhos e os chips "Pode terminar em" para destacar um resultado.
+Abra o HTML gerado em `flow-view-output/` (o arquivo se chama como o endpoint, ex.: `post-api-orders-<data>.html`) e clique nos cards para ler a explicação de cada passo. Use os botões de ramo nas decisões para ocultar/mostrar caminhos e os chips "Pode terminar em" para destacar um resultado.

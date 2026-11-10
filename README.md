@@ -81,7 +81,7 @@ Foi pensado para quem programa **e** para quem não programa: o mesmo diagrama t
 - **Estático e seguro**: o código analisado **nunca é executado**.
 - **Determinístico**: sem LLM; a mesma entrada gera a mesma saída (ótimo para revisar em PRs).
 - **Zero dependências**: só Node.js. Nada de `npm install`, nada de supply chain para vigiar.
-- **Saída portátil**: um único `index.html` autocontido (e um `flow.json` tipado).
+- **Saída portátil**: um único HTML autocontido, nomeado pelo endpoint (e um `flow.json` tipado).
 
 ## Início rápido
 
@@ -93,7 +93,7 @@ Instale uma vez e peça ao agente em linguagem natural, como faz com o Archify:
 
 ```bash
 # 1. clone a versão que você quer usar (recomendado: uma tag) e revise o conteúdo
-git clone --branch v0.2.0 https://github.com/jadsgithub/flow-view.git
+git clone --branch v0.3.0 https://github.com/jadsgithub/flow-view.git
 cd flow-view
 
 # 2. instala a skill em ~/.agents/skills/flow-view (lida por Cursor e Codex)
@@ -105,7 +105,7 @@ Depois, no seu projeto Laravel, diga ao agente:
 > **Use o Flow View e mostre o fluxo de `POST /api/orders`.**
 > *(ou: "o que acontece em `/checkout`?", "liste as rotas e explique a de cancelar pedido")*
 
-O agente lista as rotas, gera `.flow-view/post-api-orders-<data>/index.html` no seu projeto e te resume os desfechos. Detalhes na seção [Skill para agentes](#skill-para-agentes-uso-principal).
+O agente pergunta onde gravar (padrão: pasta do projeto; ou Desktop / outro caminho), gera `.flow-view/post-api-orders-<data>/post-api-orders-<data>.html` e te resume os desfechos. Detalhes na seção [Skill para agentes](#skill-para-agentes-uso-principal).
 
 ### 2) Pelo terminal (CLI)
 
@@ -119,9 +119,11 @@ node /caminho/para/flow-view/flow-view/bin/flow-view.mjs \
   --root ~/meu-projeto --list-routes                       # descobre as rotas
 node /caminho/para/flow-view/flow-view/bin/flow-view.mjs \
   --root ~/meu-projeto --method POST --path /api/checkout  # gera o diagrama
+node /caminho/para/flow-view/flow-view/bin/flow-view.mjs \
+  --root ~/meu-projeto --method POST --path /api/checkout --out ~/Desktop
 ```
 
-O navegador abre `<root>/.flow-view/<método>-<rota>-<data>/index.html`.
+O navegador abre `<root>/.flow-view/<método>-<rota>-<data>/<método>-<rota>-<data>.html`. Use `--out ~/Desktop` (ou qualquer pasta) para gravar fora do projeto.
 
 <details>
 <summary><b>Quer o comando <code>flow-view</code> disponível em qualquer pasta?</b></summary>
@@ -141,11 +143,12 @@ O Flow View é distribuído como uma **skill autocontida** ([`SKILL.md`](./SKILL
 
 **Fluxo do agente**
 
-1. `flow-view --root . --list-routes --json` — descobre as rotas (Laravel) quando o pedido não traz método + caminho exatos.
-2. `flow-view --root . --method POST --path /api/orders --json` — gera o diagrama e imprime **só** um recibo JSON (sem abrir o navegador).
-3. Responde com o link do `index.html`, o resumo (passos, decisões, desfechos) e, se você pediu explicação, um resumo em linguagem de negócio lido do `flow.json`.
+1. Pergunta onde gravar o diagrama, se você ainda não disse (padrão: pasta do projeto; senão `--out` no caminho escolhido).
+2. `flow-view --root . --list-routes --json` — descobre as rotas (Laravel) quando o pedido não traz método + caminho exatos.
+3. `flow-view --root . --method POST --path /api/orders --json` — gera o diagrama e imprime **só** um recibo JSON (sem abrir o navegador).
+4. Responde com o link do HTML (nomeado pelo endpoint), o resumo (passos, decisões, desfechos) e, se você pediu explicação, um resumo em linguagem de negócio lido do `flow.json`.
 
-Cada pedido ganha a sua pasta `.flow-view/<método>-<rota>-<AAAAMMDD-HHMMSS>/` dentro do projeto (adicione `.flow-view/` ao `.gitignore`).
+Cada pedido ganha a sua pasta `.flow-view/<método>-<rota>-<AAAAMMDD-HHMMSS>/` **ou** o destino que você escolher com `--out` (adicione `.flow-view/` ao `.gitignore` se gravar no projeto). O HTML se chama igual à pasta: `post-api-orders-20261107-172702.html`.
 
 ```jsonc
 // recibo (--json)
@@ -155,7 +158,7 @@ Cada pedido ganha a sua pasta `.flow-view/<método>-<rota>-<AAAAMMDD-HHMMSS>/` d
   "framework": "laravel",
   "entry": { "file": "routes/api.php", "line": 11, "handler": "OrderController::store" },
   "summary": { "steps": 23, "decisions": 6, "outcomes": 9, "success": 1 },
-  "files": { "html": ".../index.html", "json": ".../flow.json" }
+  "files": { "html": ".../post-api-orders-20261107-172702.html", "json": ".../flow.json" }
 }
 ```
 
@@ -204,13 +207,13 @@ flowchart LR
   C --> D["3 · Builder<br/>'quando chega aqui',<br/>tom das setas, desfechos"]
   D --> E["🔒 Redação de segredos"]
   E --> F["flow.json<br/>(IR tipado)"]
-  E --> G["4 · Renderer + CSP<br/>index.html standalone"]
+  E --> G["4 · Renderer + CSP<br/>HTML standalone"]
 ```
 
 1. **Scanner** localiza a rota e o handler (**Laravel** primeiro; depois Express, Fastify, Hono, Next.js App Router, FastAPI, Flask, Gin).
 2. **Tracer + Narrador** leem o handler como um **grafo de decisões** (`if/else` com ou sem chaves, `switch`, loops, `try/catch/finally`, `return`/`throw`) e **narram cada passo em português**: dados lidos da requisição, regras de cada condição, atribuições, chamadas externas e respostas (status + corpo). Chamadas a funções e métodos do mesmo arquivo ou de **imports relativos são resolvidas** e resumidas ("por dentro de `validateOrder`…", até 2 níveis).
 3. **Builder** calcula, para cada passo, *quando* ele é alcançado, o tom de cada seta (sucesso / erro / neutra), os **desfechos possíveis** e o texto de abertura.
-4. **Renderer** grava um `index.html` autocontido, com **Content-Security-Policy** restritiva, e o `flow.json`.
+4. **Renderer** grava um HTML autocontido (nomeado pelo endpoint), com **Content-Security-Policy** restritiva, e o `flow.json`.
 
 Tudo é regra e análise estática: **sem LLM, sem rede, sem execução do seu código**.
 
@@ -243,9 +246,9 @@ flow-view --root <dir> --method <VERBO> --path <rota> [opções]
 | `--path <rota>` | Caminho da rota: real (`/api/orders/42`) ou padrão (`/api/orders/{order}`) | *(obrigatório)* |
 | `--list-routes` | Lista as rotas encontradas (Laravel) e sai | — |
 | `--json` | Imprime só um **recibo JSON** (para agentes/scripts); não abre o navegador | — |
-| `--out <dir>` | Pasta de saída (`flow.json` + `index.html`) | `<root>/.flow-view/<método>-<rota>-<data>/` |
+| `--out <dir>` | Pasta de saída (`flow.json` + HTML nomeado pelo endpoint). Pode ser fora do projeto (`~/Desktop`). | `<root>/.flow-view/<método>-<rota>-<data>/` |
 | `--open` / `--no-open` | Força abrir / não abrir o navegador | abre (exceto com `--json`) |
-| `--render-only <arq>` | Só gera o `index.html` a partir de um `flow.json` existente | — |
+| `--render-only <arq>` | Só gera o HTML a partir de um `flow.json` existente | — |
 | `-v`, `--version` | Mostra a versão (SemVer) | — |
 | `-h`, `--help` | Ajuda | — |
 
@@ -253,7 +256,7 @@ flow-view --root <dir> --method <VERBO> --path <rota> [opções]
 
 **Saídas**
 
-- `index.html`: o diagrama interativo (um arquivo só, sem dependências de rede).
+- `<método>-<rota>-<data>.html`: o diagrama interativo (um arquivo só, sem dependências de rede; o nome é o mesmo da pasta do pedido).
 - `flow.json`: representação intermediária (IR) tipada, com schema em [`flow-view/schemas/flow.schema.json`](./flow-view/schemas/flow.schema.json). Registra também `meta.generator` (nome e versão da ferramenta).
 
 Exemplos do app de exemplo (`examples/sample-app`):
@@ -316,11 +319,11 @@ sha256sum -c SHA256SUMS                                                 # integr
 - **[CHANGELOG.md](./CHANGELOG.md)**: histórico legível por humanos ([Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)).
 - **Fonte única da versão**: `package.json`. O CI falha se `package.json`, `.cursor-plugin/plugin.json`, o `CHANGELOG.md` e a **tag** divergirem.
 - **Tags assinadas** `vX.Y.Z` e imutáveis; cada tag gera uma **GitHub Release** com `flow-view-X.Y.Z.tgz`, `SHA256SUMS` e atestado de proveniência.
-- **Rastreabilidade na saída**: todo `flow.json` registra `meta.generator` e todo `index.html` traz `<meta name="generator" content="flow-view X.Y.Z">` (e o rodapé "Gerado por flow-view vX.Y.Z"), assim você sabe qual versão gerou cada diagrama.
+- **Rastreabilidade na saída**: todo `flow.json` registra `meta.generator` e todo HTML gerado traz `<meta name="generator" content="flow-view X.Y.Z">` (e o rodapé "Gerado por flow-view vX.Y.Z"), assim você sabe qual versão gerou cada diagrama.
 - A branch `main` é **protegida** (PR obrigatório, CI verde, commits assinados, histórico linear, sem force-push).
 
 ```bash
-flow-view --version        # → 0.2.0
+flow-view --version        # → 0.3.0
 ```
 
 Processo completo (para mantenedores): [docs/releasing.md](./docs/releasing.md).

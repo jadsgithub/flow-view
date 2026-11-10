@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync, cpSync, symlinkSync, lstatSync } from "node:fs";
-import { join } from "node:path";
-import { REPO, tmp, cleanup, write, runCli } from "./helpers.mjs";
+import { join, basename } from "node:path";
+import { REPO, tmp, cleanup, write, runCli, htmlPath } from "./helpers.mjs";
 import { stripPhpComments, parseStatements, parseChain } from "../flow-view/src/php/parse.mjs";
 import { createPhpProject } from "../flow-view/src/php/project.mjs";
 import { loadLaravelRoutes, matchRoutes } from "../flow-view/src/php/routes.mjs";
@@ -14,7 +14,7 @@ function flowFor(method, path, root = LARAVEL) {
   const r = runCli(["--root", root, "--method", method, "--path", path, "--out", out]);
   assert.equal(r.status, 0, r.stderr + r.stdout);
   const flow = JSON.parse(readFileSync(join(out, "flow.json"), "utf8"));
-  return { flow, out, html: readFileSync(join(out, "index.html"), "utf8") };
+  return { flow, out, html: readFileSync(htmlPath(out), "utf8") };
 }
 
 const statuses = (flow) => flow.meta.outcomes.map((o) => o.status).sort((a, b) => a - b);
@@ -237,6 +237,7 @@ test("cli: --json imprime só o recibo e grava em .flow-view/<método>-<rota>-<d
     assert.equal(rec.opened, false);
     assert.match(rec.outDir, /\.flow-view[\\/]post-api-orders-\d{8}-\d{6}$/);
     assert.ok(rec.outDir.startsWith(root) || rec.outDir.includes(root.replace(/^\/private/, "")));
+    assert.equal(basename(rec.files.html, ".html"), basename(rec.outDir));
     assert.ok(existsSync(rec.files.html) && existsSync(rec.files.json));
   } finally {
     cleanup(root);
@@ -302,8 +303,8 @@ class ThingController {
   const out = tmp();
   try {
     assert.equal(runCli(["--root", root, "--method", "POST", "--path", "/api/things", "--out", out]).status, 0);
-    for (const f of ["flow.json", "index.html"]) {
-      assert.ok(!readFileSync(join(out, f), "utf8").includes(secret), `${f} vazou o segredo`);
+    for (const f of [join(out, "flow.json"), htmlPath(out)]) {
+      assert.ok(!readFileSync(f, "utf8").includes(secret), `${f} vazou o segredo`);
     }
   } finally {
     cleanup(root, out);
@@ -325,7 +326,7 @@ class ThingController {
   const out = tmp();
   try {
     assert.equal(runCli(["--root", root, "--method", "POST", "--path", "/api/things", "--out", out]).status, 0);
-    const html = readFileSync(join(out, "index.html"), "utf8");
+    const html = readFileSync(htmlPath(out), "utf8");
     assert.equal((html.match(/<script>/g) || []).length, 1, "só o script do viewer pode existir");
     assert.ok(!html.includes("<img src=x"), "tag do código analisado não pode aparecer crua");
     assert.ok(!html.includes("alert(3)</script>"));

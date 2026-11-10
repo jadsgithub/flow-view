@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { redactDeep } from "./redact.mjs";
 import { VERSION, NAME } from "./version.mjs";
+import { assertHtmlFileName, htmlFileName, runName } from "./output.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -26,17 +27,21 @@ export function assertFlowShape(flow) {
 }
 
 /**
- * Gera o index.html: template + dados (JSON) + Content-Security-Policy.
+ * Gera o HTML standalone: template + dados (JSON) + Content-Security-Policy.
  *
- * O HTML final é um arquivo estático, sem rede: a CSP bloqueia tudo (conexões, frames,
- * imagens, formulários) e só permite o script inline do viewer, identificado por hash SHA-256.
+ * O arquivo se chama como o pedido (`post-api-orders-…html`), não `index.html`,
+ * para continuar reconhecível fora da pasta. Sem rede: a CSP bloqueia conexões,
+ * frames, imagens e formulários e só permite o script inline do viewer (hash SHA-256).
  *
- * @param {{ flow: object, outDir: string }} opts
+ * @param {{ flow: object, outDir: string, fileName?: string }} opts
  */
 export async function renderHtml(opts) {
   const { outDir } = opts;
   assertFlowShape(opts.flow);
   const flow = redactDeep(opts.flow);
+  const fileName = assertHtmlFileName(
+    opts.fileName || htmlFileName(runName(flow.meta.route.method, flow.meta.route.path))
+  );
 
   const templatePath = join(__dirname, "..", "templates", "viewer.html");
   let html = await readFile(templatePath, "utf8");
@@ -61,7 +66,7 @@ export async function renderHtml(opts) {
   html = html.replace("__CSP__", () => csp).replace("__GENERATOR__", () => `${NAME} ${VERSION}`);
 
   await mkdir(outDir, { recursive: true });
-  const outFile = join(outDir, "index.html");
+  const outFile = join(outDir, fileName);
   await writeFile(outFile, html, "utf8");
   return outFile;
 }

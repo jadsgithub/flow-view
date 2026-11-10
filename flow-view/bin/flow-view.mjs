@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Flow View — CLI: rota → flow.json + index.html
+ * Flow View — CLI: rota → flow.json + HTML nomeado pelo endpoint
  *
  * Segurança: análise 100% estática (o código analisado nunca é executado),
  * leitura restrita à raiz informada, saída sem dependências de rede.
@@ -17,6 +17,7 @@ import { renderHtml } from "../src/renderer.mjs";
 import { MAX_FLOW_BYTES } from "../src/security.mjs";
 import { redactDeep } from "../src/redact.mjs";
 import { VERSION } from "../src/version.mjs";
+import { expandUserPath, htmlFileName, runName } from "../src/output.mjs";
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "ANY"]);
 
@@ -46,10 +47,10 @@ function parseArgs(argv) {
       if (v === undefined || (v.startsWith("--") && a !== "--path")) {
         throw new UsageError(`A opção ${a} precisa de um valor.`);
       }
-      if (a === "--root") out.root = v;
+      if (a === "--root") out.root = expandUserPath(v);
       else if (a === "--method") out.method = v;
       else if (a === "--path") out.path = v;
-      else if (a === "--out") out.outDir = v;
+      else if (a === "--out") out.outDir = expandUserPath(v);
       else if (a === "--render-only") out.renderOnly = v;
       else if (a === "--depth") {
         const n = Number(v);
@@ -89,11 +90,13 @@ Opções:
   --root <dir>          Raiz do projeto analisado (default: .). Nada fora dela é lido.
   --method <VERBO>      GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS ou ANY (default: GET)
   --path <rota>         Caminho da rota, ex: /api/orders
-  --out <dir>           Pasta de saída (default: <root>/.flow-view/<método>-<rota>-<data>/)
+  --out <dir>           Pasta de saída; pode ser fora do projeto (ex.: ~/Desktop).
+                        Default: <root>/.flow-view/<método>-<rota>-<data>/
+                        O HTML se chama <método>-<rota>-<data>.html
   --list-routes         Lista as rotas encontradas (Laravel) e sai
   --json                Imprime só um recibo JSON (para agentes/scripts); não abre o navegador
   --open / --no-open    Força abrir / não abrir o navegador (default: abre, exceto com --json)
-  --render-only <arq>   Só gera o index.html a partir de um flow.json existente
+  --render-only <arq>   Só gera o HTML a partir de um flow.json existente
   -v, --version         Mostra a versão
   -h, --help            Mostra esta ajuda
 
@@ -165,23 +168,21 @@ async function main() {
     return;
   }
 
-  const slug = (v) =>
-    String(v)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "root";
-  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..*$/, "").replace("T", "-");
-  const outDir = args.outDir ? resolve(args.outDir) : join(root, ".flow-view", `${args.method.toLowerCase()}-${slug(args.path)}-${stamp}`);
-  if (outDir === parsePath(outDir).root) throw new UsageError("--out não pode ser a raiz do sistema de arquivos.");
+  const resolveOut = (name) => {
+    const dir = args.outDir ? resolve(args.outDir) : join(root, ".flow-view", name);
+    if (dir === parsePath(dir).root) throw new UsageError("--out não pode ser a raiz do sistema de arquivos.");
+    return dir;
+  };
 
   if (args.renderOnly) {
-    const flowPath = resolve(args.renderOnly);
+    const flowPath = resolve(expandUserPath(args.renderOnly));
     const st = await stat(flowPath);
     if (!st.isFile() || st.size > MAX_FLOW_BYTES) throw new UsageError("flow.json inexistente ou grande demais.");
     const flow = JSON.parse(await readFile(flowPath, "utf8"));
+    const name = runName(flow.meta?.route?.method || args.method, flow.meta?.route?.path || args.path);
+    const outDir = resolveOut(name);
     await mkdir(outDir, { recursive: true });
-    const htmlPath = await renderHtml({ flow, outDir });
+    const htmlPath = await renderHtml({ flow, outDir, fileName: htmlFileName(name) });
     console.log("Renderizado:", htmlPath);
     if (!args.noOpen) await openBrowser(htmlPath);
     return;
@@ -208,12 +209,14 @@ async function main() {
     trace,
   });
 
+  const name = runName(args.method, args.path);
+  const outDir = resolveOut(name);
   await mkdir(outDir, { recursive: true });
   const flowPath = join(outDir, "flow.json");
   await writeFile(flowPath, JSON.stringify(redactDeep(flow), null, 2), "utf8");
   say("IR salvo:", flowPath);
 
-  const htmlPath = await renderHtml({ flow, outDir });
+  const htmlPath = await renderHtml({ flow, outDir, fileName: htmlFileName(name) });
   say("HTML:", htmlPath);
 
   let opened = false;

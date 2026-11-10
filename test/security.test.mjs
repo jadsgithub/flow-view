@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, symlinkSync } from "node:fs";
 import { join } from "node:path";
-import { tmp, write, cleanup, runCli } from "./helpers.mjs";
+import { tmp, write, cleanup, runCli, htmlPath } from "./helpers.mjs";
 import { isInside, escapeRegExp, MAX_FILE_BYTES } from "../flow-view/src/security.mjs";
 
 test("isInside: aceita dentro da raiz e recusa ../ e irmãos de nome parecido", () => {
@@ -53,7 +53,7 @@ test("não lê arquivos fora da raiz via import relativo (path traversal)", () =
     const out = join(base, "out");
     const r = runCli(["--root", join(base, "proj"), "--method", "GET", "--path", "/x", "--out", out]);
     assert.equal(r.status, 0, r.stderr);
-    const all = readFileSync(join(out, "flow.json"), "utf8") + readFileSync(join(out, "index.html"), "utf8");
+    const all = readFileSync(join(out, "flow.json"), "utf8") + readFileSync(htmlPath(out), "utf8");
     assert.ok(!all.includes("MARCADOR_FORA_DA_RAIZ"), "conteúdo de arquivo fora da raiz vazou para a saída");
   } finally {
     cleanup(base);
@@ -108,7 +108,7 @@ test("conteúdo malicioso no código analisado não vira HTML executável", () =
     const out = join(base, "out");
     const r = runCli(["--root", base, "--method", "POST", "--path", "/evil", "--out", out]);
     assert.equal(r.status, 0, r.stderr);
-    const html = readFileSync(join(out, "index.html"), "utf8");
+    const html = readFileSync(htmlPath(out), "utf8");
     // 1) o bloco de dados não pode ser fechado por conteúdo do código
     assert.equal((html.match(/<\/script>/g) || []).length, 2, "esperava exatamente 2 </script> (dados + viewer)");
     assert.ok(!html.includes("</script><img"), "payload fechou o <script>");

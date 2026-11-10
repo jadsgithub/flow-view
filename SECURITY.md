@@ -43,8 +43,8 @@ Inclua, se possível:
 
 - Execução de código ao analisar um repositório (o Flow View **nunca** deve executar o código analisado);
 - Leitura de arquivos fora da `--root` (path traversal, symlinks);
-- XSS ou qualquer script não autorizado no `index.html` gerado; enfraquecimento da CSP;
-- Vazamento de segredos para `flow.json`/`index.html` (falhas da redação de segredos);
+- XSS ou qualquer script não autorizado no HTML gerado; enfraquecimento da CSP;
+- Vazamento de segredos para `flow.json`/HTML (falhas da redação de segredos);
 - Negação de serviço por entrada maliciosa (ReDoS, consumo ilimitado de memória/tempo);
 - Injeção de comando em `flow-view` ou `install.sh`;
 - Comprometimento da cadeia de suprimentos (workflows, releases, dependências).
@@ -53,7 +53,7 @@ Inclua, se possível:
 
 - Vulnerabilidades no código **que você analisa** com o Flow View (a ferramenta apenas o descreve);
 - Segredos que a redação heurística não reconheceu em formatos incomuns *(mas relate para melhorarmos os padrões)*;
-- Ataques que exijam acesso prévio à máquina do usuário ou a edição do `index.html` gerado;
+- Ataques que exijam acesso prévio à máquina do usuário ou a edição do HTML gerado;
 - Relatórios automáticos sem prova de conceito.
 
 ## Modelo de segurança (resumo)
@@ -76,7 +76,7 @@ Detalhes e premissas em [docs/threat-model.md](./docs/threat-model.md).
 
 ### Boas práticas para quem usa
 
-- Revise o `index.html` antes de compartilhá-lo: ele contém **trechos do seu código**.
+- Revise o HTML gerado antes de compartilhá-lo: ele contém **trechos do seu código**.
 - Não publique `flow-view-output/` em repositórios (já está no `.gitignore`).
 - Ao instalar a skill, **clone o repositório numa tag**, revise e rode `bash install.sh` localmente; evite `curl | bash`.
 - Verifique a procedência de uma release:

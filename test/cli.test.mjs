@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join } from "node:path";
-import { SAMPLE, REPO, tmp, cleanup, runCli } from "./helpers.mjs";
+import { join, basename } from "node:path";
+import { SAMPLE, REPO, tmp, cleanup, runCli, htmlPath } from "./helpers.mjs";
+import { htmlFileName, runName, slugPath } from "../flow-view/src/output.mjs";
 
 const pkg = JSON.parse(readFileSync(join(REPO, "package.json"), "utf8"));
 
@@ -14,7 +15,7 @@ const ROUTES = [
 ];
 
 for (const [method, path] of ROUTES) {
-  test(`gera flow.json e index.html para ${method} ${path}`, () => {
+  test(`gera flow.json e HTML nomeado pelo endpoint para ${method} ${path}`, () => {
     const out = tmp();
     try {
       const r = runCli(["--root", SAMPLE, "--method", method, "--path", path, "--out", out]);
@@ -30,7 +31,7 @@ for (const [method, path] of ROUTES) {
       for (const e of flow.edges) assert.ok(ids.has(e.from) && ids.has(e.to), "aresta aponta para nó inexistente");
       assert.ok(flow.meta.outcomes.length >= 1, "esperava ao menos um desfecho");
 
-      const html = readFileSync(join(out, "index.html"), "utf8");
+      const html = readFileSync(htmlPath(out), "utf8");
       assert.ok(!html.includes("__FLOW_JSON__") && !html.includes("__CSP__") && !html.includes("__GENERATOR__"));
       assert.match(html, new RegExp(`<meta name="generator" content="flow-view ${pkg.version.replace(/\./g, "\\.")}"`));
     } finally {
@@ -43,7 +44,7 @@ test("o HTML tem CSP restritiva e o hash do script confere", () => {
   const out = tmp();
   try {
     assert.equal(runCli(["--root", SAMPLE, "--method", "POST", "--path", "/api/orders", "--out", out]).status, 0);
-    const html = readFileSync(join(out, "index.html"), "utf8");
+    const html = readFileSync(htmlPath(out), "utf8");
     const csp = html.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
     assert.match(csp, /default-src 'none'/);
     assert.match(csp, /connect-src 'none'/);
@@ -101,5 +102,44 @@ test("--render-only valida o IR antes de renderizar", async () => {
     assert.match(r.stderr, /flow\.json inválido/);
   } finally {
     cleanup(dir);
+  }
+});
+
+test("runName segue o slug do endpoint e o carimbo UTC", () => {
+  const n = runName("POST", "/api/orders/{order}", new Date("2026-11-07T18:15:08.000Z"));
+  assert.equal(slugPath("/api/orders/{order}"), "api-orders-order");
+  assert.equal(n, "post-api-orders-order-20261107-181508");
+  assert.equal(htmlFileName(n), "post-api-orders-order-20261107-181508.html");
+});
+
+test("HTML usa o nome amigável do endpoint; --out grava fora do projeto", () => {
+  const dest = tmp();
+  try {
+    const r = runCli(["--root", SAMPLE, "--method", "POST", "--path", "/api/orders", "--out", dest, "--json"]);
+    assert.equal(r.status, 0, r.stderr);
+    const rec = JSON.parse(r.stdout);
+    assert.equal(rec.ok, true);
+    assert.equal(rec.outDir, dest);
+    assert.match(basename(rec.files.html), /^post-api-orders-\d{8}-\d{6}\.html$/);
+    assert.ok(existsSync(rec.files.html) && existsSync(rec.files.json));
+    assert.ok(!existsSync(join(dest, "index.html")));
+  } finally {
+    cleanup(dest);
+  }
+});
+
+test("expande ~ em --out", () => {
+  const home = tmp("fv-home-");
+  try {
+    const r = runCli(["--root", SAMPLE, "--method", "POST", "--path", "/api/orders", "--out", "~/fluxos", "--json"], {
+      env: { ...process.env, HOME: home },
+    });
+    assert.equal(r.status, 0, r.stderr);
+    const rec = JSON.parse(r.stdout);
+    assert.equal(rec.ok, true);
+    assert.ok(rec.outDir === join(home, "fluxos") || rec.files.html.startsWith(home));
+    assert.ok(existsSync(rec.files.html));
+  } finally {
+    cleanup(home);
   }
 });

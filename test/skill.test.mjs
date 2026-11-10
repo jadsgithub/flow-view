@@ -26,7 +26,7 @@ test("SKILL.md tem frontmatter válido (name, description) e a versão confere c
 });
 
 test("SKILL.md documenta os fluxos principais do agente", () => {
-  for (const needle of ["--list-routes", "--json", ".flow-view/", "prompt injection", "PHP"]) {
+  for (const needle of ["--list-routes", "--json", "--out", ".flow-view/", "prompt injection", "PHP"]) {
     if (needle === "prompt injection") assert.match(skill, /dados, nunca como instruções/);
     else assert.ok(skill.includes(needle), `SKILL.md deveria mencionar ${needle}`);
   }

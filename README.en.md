@@ -67,7 +67,7 @@ It is built for people who code **and** people who don't: the same diagram has a
 | 🧑‍💼 **Product / Business** | Read and validate **business rules** without reading code |
 | 🤖 **AI agents** | A reliable, deterministic map of the flow instead of guessing across dozens of files |
 
-**Principles:** local and private (no network, no telemetry) · static analysis (the analyzed code is **never executed**) · deterministic (no LLM) · **zero dependencies** · a single self-contained `index.html`.
+**Principles:** local and private (no network, no telemetry) · static analysis (the analyzed code is **never executed**) · deterministic (no LLM) · **zero dependencies** · a single self-contained HTML file named after the endpoint.
 
 ## Quick start
 
@@ -79,7 +79,7 @@ Install once, then ask your agent in plain language, the way you use Archify:
 
 ```bash
 # 1. clone the version you want (recommended: a tag) and review the contents
-git clone --branch v0.2.0 https://github.com/jadsgithub/flow-view.git
+git clone --branch v0.3.0 https://github.com/jadsgithub/flow-view.git
 cd flow-view
 
 # 2. installs the skill into ~/.agents/skills/flow-view (read by Cursor and Codex)
@@ -90,7 +90,7 @@ Then, inside your Laravel project, tell the agent:
 
 > **Use Flow View and show me the flow of `POST /api/orders`.**
 
-The agent lists the routes, writes `.flow-view/post-api-orders-<date>/index.html` into your project and summarizes the outcomes.
+The agent asks where to save (default: the project folder; or Desktop / another path), writes `.flow-view/post-api-orders-<date>/post-api-orders-<date>.html` and summarizes the outcomes.
 
 ### 2) From the terminal (CLI)
 
@@ -100,6 +100,8 @@ node flow-view/bin/flow-view.mjs --root examples/laravel-app --method POST --pat
 # your own project
 node /path/to/flow-view/flow-view/bin/flow-view.mjs --root ~/my-project --list-routes
 node /path/to/flow-view/flow-view/bin/flow-view.mjs --root ~/my-project --method POST --path /api/checkout
+# save outside the project
+node /path/to/flow-view/flow-view/bin/flow-view.mjs --root ~/my-project --method POST --path /api/checkout --out ~/Desktop
 ```
 
 <details>
@@ -118,11 +120,12 @@ Flow View ships as a **self-contained skill** ([`SKILL.md`](./SKILL.md) + `flow-
 
 **Agent workflow**
 
-1. `flow-view --root . --list-routes --json` — discover routes (Laravel) when the request has no exact method + path.
-2. `flow-view --root . --method POST --path /api/orders --json` — generate the diagram and print **only** a JSON receipt (no browser).
-3. Reply with the `index.html` link, the summary (steps, decisions, outcomes) and, if you asked for an explanation, a business-language recap read from `flow.json`.
+1. Ask where to save the diagram, if you have not said yet (default: the project folder; otherwise `--out` at the chosen path).
+2. `flow-view --root . --list-routes --json` — discover routes (Laravel) when the request has no exact method + path.
+3. `flow-view --root . --method POST --path /api/orders --json` — generate the diagram and print **only** a JSON receipt (no browser).
+4. Reply with the HTML link (named after the endpoint), the summary (steps, decisions, outcomes) and, if you asked for an explanation, a business-language recap read from `flow.json`.
 
-Each request gets its own folder `.flow-view/<method>-<route>-<YYYYMMDD-HHMMSS>/` inside the project (add `.flow-view/` to `.gitignore`).
+Each request gets its own folder `.flow-view/<method>-<route>-<YYYYMMDD-HHMMSS>/` **or** the destination you choose with `--out` (add `.flow-view/` to `.gitignore` if you save inside the project). The HTML file uses the same name as the folder: `post-api-orders-20261107-172702.html`.
 
 ```bash
 bash install.sh              # ~/.agents/skills/flow-view  (Cursor and Codex read from here)
@@ -159,13 +162,13 @@ flowchart LR
   C --> D["3 · Builder<br/>'reached when',<br/>edge tone, outcomes"]
   D --> E["🔒 Secret redaction"]
   E --> F["flow.json<br/>(typed IR)"]
-  E --> G["4 · Renderer + CSP<br/>standalone index.html"]
+  E --> G["4 · Renderer + CSP<br/>standalone HTML"]
 ```
 
 1. **Scanner** finds the route and handler (**Laravel** first; then Express, Fastify, Hono, Next.js App Router, FastAPI, Flask, Gin).
 2. **Tracer + Narrator** read the handler as a **decision graph** (`if/else`, `switch`, loops, `try/catch/finally`, `return`/`throw`) and **narrate each step**; calls to functions/methods in the same file or via **relative imports are resolved** and summarized (up to 2 levels).
 3. **Builder** computes, for each step, *when* it is reached, the tone of each edge (success / error / neutral) and the **possible outcomes**.
-4. **Renderer** writes a self-contained `index.html` with a strict **Content-Security-Policy**, plus `flow.json`.
+4. **Renderer** writes a self-contained HTML file (named after the endpoint) with a strict **Content-Security-Policy**, plus `flow.json`.
 
 Everything is rules and static analysis: **no LLM, no network, no execution of your code**.
 
@@ -182,9 +185,9 @@ flow-view --root <dir> --method <VERB> --path <route> [options]
 | `--path <route>` | Route path: real (`/api/orders/42`) or pattern (`/api/orders/{order}`) | *(required)* |
 | `--list-routes` | List the routes found (Laravel) and exit | — |
 | `--json` | Print only a **JSON receipt** (for agents/scripts); doesn't open the browser | — |
-| `--out <dir>` | Output folder (`flow.json` + `index.html`) | `<root>/.flow-view/<method>-<route>-<date>/` |
+| `--out <dir>` | Output folder (`flow.json` + HTML named after the endpoint). May be outside the project (`~/Desktop`). | `<root>/.flow-view/<method>-<route>-<date>/` |
 | `--open` / `--no-open` | Force / suppress opening the browser | opens (except with `--json`) |
-| `--render-only <file>` | Only render `index.html` from an existing `flow.json` | — |
+| `--render-only <file>` | Only render HTML from an existing `flow.json` | — |
 | `-v`, `--version` | Print the version (SemVer) | — |
 | `-h`, `--help` | Help | — |
 
@@ -234,7 +237,7 @@ sha256sum -c SHA256SUMS                                                 # integr
 - **[CHANGELOG.md](./CHANGELOG.md)** follows [Keep a Changelog](https://keepachangelog.com).
 - **Single source of truth**: `package.json`. CI fails if it diverges from `.cursor-plugin/plugin.json`, `CHANGELOG.md` or the **tag**.
 - **Signed, immutable tags** `vX.Y.Z`; each tag produces a **GitHub Release** with `flow-view-X.Y.Z.tgz`, `SHA256SUMS` and a provenance attestation.
-- **Traceability**: every `flow.json` records `meta.generator`, every `index.html` carries `<meta name="generator" content="flow-view X.Y.Z">`.
+- **Traceability**: every `flow.json` records `meta.generator`, every generated HTML file carries `<meta name="generator" content="flow-view X.Y.Z">`.
 - `main` is **protected** (required PR, green CI, signed commits, linear history, no force-push).
 
 Maintainer process: [docs/releasing.md](./docs/releasing.md).
