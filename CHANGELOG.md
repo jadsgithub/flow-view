@@ -7,6 +7,19 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Unreleased]
 
+### Corrigido
+
+- Bundle com mais de uma rota: a segunda e demais rotas ficavam sem diagrama (`ReferenceError: mkId is not defined` ao desenhar setas SVG).
+
+## [0.4.0] - 2026-11-18
+
+### Adicionado
+
+- **Documento com várias rotas** (`--bundle`): um único HTML com índice lateral, seções separadas por endpoint e toolbar global (modo, tema, zoom, expandir).
+- IR agregado `flows.json` (`meta.kind === "bundle"`) e schema `flow-bundle.schema.json`.
+- Entrada flexível: `--route METHOD:/path` (repetível), `--routes-file <json>` e questionário interativo no terminal (`--bundle` sem rotas, com TTY).
+- `--render-only` aceita `flows.json` e regenera o HTML do bundle.
+
 ## [0.3.0] - 2026-11-10
 
 HTML nomeado pelo endpoint e pasta de saída escolhível; fluxo Laravel mais fiel e diagrama mais legível.
@@ -100,7 +113,8 @@ Primeira versão pública.
 - Validação estrita dos argumentos do CLI e do IR em `--render-only`; navegador aberto sem shell.
 - Zero dependências de runtime; Actions fixadas por SHA; CodeQL, Scorecard, Dependabot e Dependency Review.
 
-[Unreleased]: https://github.com/jadsgithub/flow-view/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/jadsgithub/flow-view/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jadsgithub/flow-view/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jadsgithub/flow-view/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jadsgithub/flow-view/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jadsgithub/flow-view/releases/tag/v0.1.0

@@ -13,18 +13,48 @@ import { spawn } from "node:child_process";
 import { findRouteHandler, listLaravelRoutes } from "../src/scanner.mjs";
 import { traceRoute } from "../src/tracer.mjs";
 import { buildFlowJson } from "../src/builder.mjs";
-import { renderHtml } from "../src/renderer.mjs";
+import { renderHtml, renderBundleHtml } from "../src/renderer.mjs";
 import { MAX_FLOW_BYTES } from "../src/security.mjs";
 import { redactDeep } from "../src/redact.mjs";
 import { VERSION } from "../src/version.mjs";
-import { expandUserPath, htmlFileName, runName } from "../src/output.mjs";
+import { expandUserPath, htmlFileName, runName, bundleRunName, bundleHtmlFileName } from "../src/output.mjs";
+import {
+  buildBundle,
+  bundleSummary,
+  defaultBundleTitle,
+  isBundle,
+  parseRouteSpec,
+  parseRoutesFile,
+  MAX_FLOWS_PER_BUNDLE,
+} from "../src/bundle.mjs";
+import { promptBundleRoutes } from "../src/prompt.mjs";
 
 const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "ANY"]);
 
 class UsageError extends Error {}
 
-const VALUE_FLAGS = new Set(["--root", "--method", "--path", "--out", "--depth", "--render-only"]);
-const BOOL_FLAGS = new Set(["--no-open", "--open", "--json", "--list-routes", "-h", "--help", "-v", "--version"]);
+const VALUE_FLAGS = new Set([
+  "--root",
+  "--method",
+  "--path",
+  "--out",
+  "--depth",
+  "--render-only",
+  "--title",
+  "--routes-file",
+  "--route",
+]);
+const BOOL_FLAGS = new Set([
+  "--no-open",
+  "--open",
+  "--json",
+  "--list-routes",
+  "--bundle",
+  "-h",
+  "--help",
+  "-v",
+  "--version",
+]);
 
 function parseArgs(argv) {
   const out = {
@@ -39,6 +69,10 @@ function parseArgs(argv) {
     renderOnly: null,
     help: false,
     version: false,
+    bundle: false,
+    title: "",
+    routes: [],
+    routesFile: null,
   };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
@@ -52,7 +86,12 @@ function parseArgs(argv) {
       else if (a === "--path") out.path = v;
       else if (a === "--out") out.outDir = expandUserPath(v);
       else if (a === "--render-only") out.renderOnly = v;
-      else if (a === "--depth") {
+      else if (a === "--title") out.title = v;
+      else if (a === "--routes-file") out.routesFile = expandUserPath(v);
+      else if (a === "--route") {
+        out.bundle = true;
+        out.routes.push(parseRouteSpec(v));
+      } else if (a === "--depth") {
         const n = Number(v);
         if (!Number.isInteger(n) || n < 1 || n > 20) throw new UsageError("--depth deve ser um inteiro entre 1 e 20.");
         // reservado: aceito por compatibilidade, ainda sem efeito
@@ -62,6 +101,7 @@ function parseArgs(argv) {
       else if (a === "--open") out.open = true;
       else if (a === "--json") out.json = true;
       else if (a === "--list-routes") out.listRoutes = true;
+      else if (a === "--bundle") out.bundle = true;
       else if (a === "-h" || a === "--help") out.help = true;
       else out.version = true;
     } else {
@@ -85,18 +125,24 @@ flow-view v${VERSION} — diagrama de fluxo por rota
 Uso:
   flow-view --root . --method POST --path /api/checkout
   flow-view --root . --list-routes            # lista as rotas (Laravel)
+  flow-view --root . --bundle --route POST:/api/orders --route GET:/api/hello
+  flow-view --root . --bundle                 # questionário interativo (TTY)
 
 Opções:
   --root <dir>          Raiz do projeto analisado (default: .). Nada fora dela é lido.
   --method <VERBO>      GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS ou ANY (default: GET)
   --path <rota>         Caminho da rota, ex: /api/orders
+  --bundle              Documento com várias rotas (flows.json + HTML com índice)
+  --route <VERBO>:<path>  Rota no bundle (repetível), ex.: POST:/api/orders
+  --routes-file <json>  Lista JSON [{ "method", "path" }, …]
+  --title <texto>       Título do bundle (opcional)
   --out <dir>           Pasta de saída; pode ser fora do projeto (ex.: ~/Desktop).
                         Default: <root>/.flow-view/<método>-<rota>-<data>/
                         O HTML se chama <método>-<rota>-<data>.html
   --list-routes         Lista as rotas encontradas (Laravel) e sai
   --json                Imprime só um recibo JSON (para agentes/scripts); não abre o navegador
   --open / --no-open    Força abrir / não abrir o navegador (default: abre, exceto com --json)
-  --render-only <arq>   Só gera o HTML a partir de um flow.json existente
+  --render-only <arq>   Só gera o HTML a partir de um flow.json ou flows.json existente
   -v, --version         Mostra a versão
   -h, --help            Mostra esta ajuda
 
@@ -129,6 +175,23 @@ function openBrowser(file) {
       res(false);
     }
   });
+}
+
+async function buildFlowForRoute(root, route) {
+  const scan = await findRouteHandler({ root, method: route.method, path: route.path });
+  if (!scan.ok) {
+    return { ok: false, route, error: scan.error || "Rota não encontrada" };
+  }
+  const trace = await traceRoute({ scan, rootDir: root });
+  const scanWithReq = { ...scan, requestMethod: route.method, requestPath: route.path };
+  const flow = buildFlowJson({
+    nodes: trace.nodes,
+    edges: trace.edges,
+    entry: trace.entry,
+    scan: scanWithReq,
+    trace,
+  });
+  return { ok: true, route, flow, scan };
 }
 
 async function main() {
@@ -177,18 +240,106 @@ async function main() {
   if (args.renderOnly) {
     const flowPath = resolve(expandUserPath(args.renderOnly));
     const st = await stat(flowPath);
-    if (!st.isFile() || st.size > MAX_FLOW_BYTES) throw new UsageError("flow.json inexistente ou grande demais.");
-    const flow = JSON.parse(await readFile(flowPath, "utf8"));
-    const name = runName(flow.meta?.route?.method || args.method, flow.meta?.route?.path || args.path);
-    const outDir = resolveOut(name);
+    if (!st.isFile() || st.size > MAX_FLOW_BYTES) throw new UsageError("flow.json/flows.json inexistente ou grande demais.");
+    const doc = JSON.parse(await readFile(flowPath, "utf8"));
+    let name;
+    let htmlPath;
+    const outBase = isBundle(doc)
+      ? bundleRunName(doc.meta?.title || "fluxos")
+      : runName(doc.meta?.route?.method || args.method, doc.meta?.route?.path || args.path);
+    const outDir = resolveOut(outBase);
     await mkdir(outDir, { recursive: true });
-    const htmlPath = await renderHtml({ flow, outDir, fileName: htmlFileName(name) });
+    if (isBundle(doc)) {
+      name = bundleHtmlFileName(outBase);
+      htmlPath = await renderBundleHtml({ bundle: doc, outDir, fileName: name });
+    } else {
+      name = htmlFileName(outBase);
+      htmlPath = await renderHtml({ flow: doc, outDir, fileName: name });
+    }
     console.log("Renderizado:", htmlPath);
     if (!args.noOpen) await openBrowser(htmlPath);
     return;
   }
 
-  if (!args.path) throw new UsageError("Falta --path /rota");
+  if (args.bundle) {
+    const rootStatB = await stat(root).catch(() => null);
+    if (!rootStatB || !rootStatB.isDirectory()) throw new UsageError(`--root não é um diretório: ${root}`);
+
+    let routeSpecs = [...args.routes];
+    if (args.routesFile) {
+      const raw = await readFile(resolve(args.routesFile), "utf8");
+      routeSpecs = routeSpecs.concat(parseRoutesFile(raw));
+    }
+    let bundleTitle = args.title;
+    if (routeSpecs.length === 0) {
+      if (args.json || !process.stdin.isTTY) {
+        throw new UsageError("Informe rotas com --route METHOD:/path, --routes-file ou rode sem --json em um terminal interativo.");
+      }
+      const prompted = await promptBundleRoutes();
+      routeSpecs = prompted.routes;
+      if (!bundleTitle) bundleTitle = prompted.title;
+    }
+    if (routeSpecs.length > MAX_FLOWS_PER_BUNDLE) {
+      throw new UsageError(`Máximo de ${MAX_FLOWS_PER_BUNDLE} rotas por documento.`);
+    }
+
+    const flows = [];
+    const errors = [];
+    for (const route of routeSpecs) {
+      const built = await buildFlowForRoute(root, route);
+      if (!built.ok) {
+        errors.push({ method: route.method, path: route.path, error: built.error });
+        continue;
+      }
+      flows.push(built.flow);
+    }
+    if (errors.length) {
+      return fail(2, "Algumas rotas não puderam ser analisadas.", {
+        failed: errors,
+        succeeded: flows.map((f) => f.meta.route),
+      });
+    }
+    if (!flows.length) return fail(2, "Nenhum fluxo gerado.");
+
+    const bundle = buildBundle({ title: bundleTitle || defaultBundleTitle(flows), flows });
+    const folderName = bundleRunName(bundle.meta.title);
+    const outDir = resolveOut(folderName);
+    await mkdir(outDir, { recursive: true });
+    const jsonPath = join(outDir, "flows.json");
+    await writeFile(jsonPath, JSON.stringify(bundle, null, 2), "utf8");
+    say("IR salvo:", jsonPath);
+
+    const htmlName = bundleHtmlFileName(folderName);
+    const htmlPath = await renderBundleHtml({ bundle, outDir, fileName: htmlName });
+    say("HTML:", htmlPath);
+
+    let opened = false;
+    if (shouldOpen) opened = await openBrowser(htmlPath);
+
+    if (args.json) {
+      console.log(
+        JSON.stringify(
+          {
+            ok: true,
+            version: VERSION,
+            bundle: {
+              title: bundle.meta.title,
+              routes: bundleSummary(flows),
+              totalSteps: flows.reduce((n, f) => n + f.nodes.length, 0),
+            },
+            outDir,
+            files: { html: htmlPath, json: jsonPath },
+            opened,
+          },
+          null,
+          2
+        )
+      );
+    }
+    return;
+  }
+
+  if (!args.path) throw new UsageError("Falta --path /rota (ou use --bundle para várias rotas)");
 
   const rootStat = await stat(root).catch(() => null);
   if (!rootStat || !rootStat.isDirectory()) throw new UsageError(`--root não é um diretório: ${root}`);

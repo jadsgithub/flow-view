@@ -121,9 +121,16 @@ node /caminho/para/flow-view/flow-view/bin/flow-view.mjs \
   --root ~/meu-projeto --method POST --path /api/checkout  # gera o diagrama
 node /caminho/para/flow-view/flow-view/bin/flow-view.mjs \
   --root ~/meu-projeto --method POST --path /api/checkout --out ~/Desktop
+
+# várias rotas no mesmo HTML (índice lateral)
+node flow-view/bin/flow-view.mjs --root . --bundle \
+  --title "Pedidos" --route POST:/api/orders --route GET:/api/orders/{order}
+node flow-view/bin/flow-view.mjs --root . --bundle   # questionário interativo no terminal
 ```
 
 O navegador abre `<root>/.flow-view/<método>-<rota>-<data>/<método>-<rota>-<data>.html`. Use `--out ~/Desktop` (ou qualquer pasta) para gravar fora do projeto.
+
+Com `--bundle`, a saída é `flows.json` + `bundle-<título>-<data>.html`, com menu lateral para saltar entre rotas e cada fluxo em sua própria seção.
 
 <details>
 <summary><b>Quer o comando <code>flow-view</code> disponível em qualquer pasta?</b></summary>
@@ -243,12 +250,16 @@ flow-view --root <dir> --method <VERBO> --path <rota> [opções]
 | ----- | --------- | ------ |
 | `--root <dir>` | Raiz do projeto analisado. **Nada fora dela é lido.** | `.` |
 | `--method <VERBO>` | `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS` ou `ANY` | `GET` |
-| `--path <rota>` | Caminho da rota: real (`/api/orders/42`) ou padrão (`/api/orders/{order}`) | *(obrigatório)* |
+| `--path <rota>` | Caminho da rota: real (`/api/orders/42`) ou padrão (`/api/orders/{order}`) | *(obrigatório sem `--bundle`)* |
+| `--bundle` | Gera um documento com várias rotas (`flows.json` + HTML com índice) | — |
+| `--route <VERBO>:<path>` | Rota no bundle (repetível), ex.: `POST:/api/orders` | — |
+| `--routes-file <json>` | Arquivo com lista `[{ "method", "path" }, …]` | — |
+| `--title <texto>` | Título do documento bundle | — |
 | `--list-routes` | Lista as rotas encontradas (Laravel) e sai | — |
 | `--json` | Imprime só um **recibo JSON** (para agentes/scripts); não abre o navegador | — |
 | `--out <dir>` | Pasta de saída (`flow.json` + HTML nomeado pelo endpoint). Pode ser fora do projeto (`~/Desktop`). | `<root>/.flow-view/<método>-<rota>-<data>/` |
 | `--open` / `--no-open` | Força abrir / não abrir o navegador | abre (exceto com `--json`) |
-| `--render-only <arq>` | Só gera o HTML a partir de um `flow.json` existente | — |
+| `--render-only <arq>` | Só gera o HTML a partir de um `flow.json` ou `flows.json` existente | — |
 | `-v`, `--version` | Mostra a versão (SemVer) | — |
 | `-h`, `--help` | Ajuda | — |
 

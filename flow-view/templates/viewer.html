@@ -136,7 +136,7 @@
   .strip:empty { display: none; }
   @media (min-width: 1100px) {
     .summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 0 2rem; }
-    .summary .intro, .summary #inputs, .summary #outcomes { grid-column: 1 / -1; }
+    .summary .intro, .summary .inputs, .summary .outcomes { grid-column: 1 / -1; }
   }
   .strip-label {
     font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
@@ -198,12 +198,12 @@
   .tbtn.on { color: var(--text); background: color-mix(in srgb, var(--ok) 16%, transparent); }
 
   /* ---------------- Canvas ---------------- */
-  #viewport { margin-top: 0; overflow-x: auto; overflow-y: hidden; cursor: grab; }
-  #viewport.panning { cursor: grabbing; user-select: none; }
-  #sizer { position: relative; }
-  #stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
-  #edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; transition: opacity 0.18s; }
-  #edges .hit { pointer-events: stroke; }
+  .viewport { margin-top: 0; overflow-x: auto; overflow-y: hidden; cursor: grab; }
+  .viewport.panning { cursor: grabbing; user-select: none; }
+  .sizer { position: relative; }
+  .stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  .edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; transition: opacity 0.18s; }
+  .edges .hit { pointer-events: stroke; }
 
   /* ---------------- Cards ---------------- */
   .card {
@@ -355,6 +355,118 @@
     .toolbar { justify-content: flex-start; }
     .banner { top: 8px; }
   }
+
+  /* ---------------- Documento com várias rotas ---------------- */
+  body.bundle-mode .page-single { display: none; }
+  .doc-layout {
+    display: grid;
+    grid-template-columns: minmax(200px, 248px) minmax(0, 1fr);
+    gap: 0;
+    align-items: start;
+    max-width: 100%;
+  }
+  .sidebar {
+    position: sticky;
+    top: var(--topbar-h);
+    max-height: calc(100vh - var(--topbar-h));
+    overflow-y: auto;
+    padding: 1rem 0.75rem 2rem 1.25rem;
+    border-right: 1px solid var(--panel-border);
+    background: color-mix(in srgb, var(--mask) 40%, transparent);
+  }
+  .sidebar h2 {
+    margin: 0 0 0.75rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .nav-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+  .nav-list a {
+    display: block;
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+  .nav-list a:hover { color: var(--text); background: color-mix(in srgb, var(--mask) 80%, transparent); }
+  .nav-list a.on {
+    color: var(--text);
+    border-color: color-mix(in srgb, var(--entry-stroke) 45%, transparent);
+    background: color-mix(in srgb, var(--entry-fill) 55%, var(--mask));
+  }
+  .nav-list .ni-method {
+    display: inline-block;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    margin-right: 0.35rem;
+    color: var(--entry-stroke);
+  }
+  .nav-list .ni-path {
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 0.74rem;
+    word-break: break-word;
+  }
+  .nav-list .ni-meta { display: block; margin-top: 0.2rem; font-size: 0.68rem; color: var(--text-dim); }
+  .doc-main { min-width: 0; padding: 1.1rem 1.5rem 3rem; }
+  .flow-section {
+    scroll-margin-top: calc(var(--topbar-h) + 12px);
+    margin-bottom: 3.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 2px solid var(--panel-border);
+  }
+  .flow-section:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid color-mix(in srgb, var(--entry-stroke) 35%, transparent);
+    background: color-mix(in srgb, var(--entry-fill) 35%, var(--mask));
+  }
+  .section-head .method { margin: 0; }
+  .section-head .route-path { font-size: 1.15rem; max-width: 100%; }
+  .section-index {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    width: 100%;
+  }
+  .bundle-title {
+    font-size: 1.05rem;
+    font-weight: 650;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bundle-count { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; margin-left: 0.35rem; }
+  .legend-global { padding: 1rem 1.5rem 2rem; max-width: 78rem; margin: 0 auto; }
+  @media (max-width: 900px) {
+    .doc-layout { grid-template-columns: 1fr; }
+    .sidebar {
+      position: static;
+      max-height: none;
+      border-right: 0;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+    .sidebar h2 { width: 100%; }
+    .nav-list { flex-direction: row; flex-wrap: wrap; width: 100%; }
+    .nav-list a { flex: 1 1 12rem; }
+  }
 </style>
 </head>
 <body>
@@ -386,18 +498,18 @@
 </div>
 </header>
 
-<div class="page">
+<div class="page page-single" id="flow-page">
   <section class="summary">
-    <p class="intro" id="intro"></p>
-    <div class="strip" id="inputs"></div>
-    <div class="strip" id="outcomes"></div>
+    <p class="intro"></p>
+    <div class="strip inputs"></div>
+    <div class="strip outcomes"></div>
   </section>
-  <div class="banner" id="banner"></div>
+  <div class="banner"></div>
 
-  <div id="viewport">
-    <div id="sizer">
-      <div id="stage">
-        <svg id="edges"></svg>
+  <div class="viewport">
+    <div class="sizer">
+      <div class="stage">
+        <svg class="edges"></svg>
       </div>
     </div>
   </div>
@@ -407,8 +519,24 @@
     <span><i class="error"></i>caminho de erro ou recusa</span>
     <span><i class="neutral"></i>caminho neutro</span>
     <span>Clique no cabeçalho de um card para ler a explicação; use os botões de ramo para ocultar/mostrar um caminho.</span>
-    <span id="generator" class="gen"></span>
+    <span class="generator gen"></span>
   </div>
+</div>
+
+<div class="doc-layout" id="doc-layout" hidden>
+  <nav class="sidebar" aria-label="Índice de rotas">
+    <h2>Rotas neste documento</h2>
+    <ul class="nav-list" id="flow-nav"></ul>
+  </nav>
+  <main class="doc-main" id="flow-sections"></main>
+</div>
+
+<div class="legend legend-global" id="legend-global" hidden>
+  <span><i class="ok"></i>caminho que leva a um resultado de sucesso</span>
+  <span><i class="error"></i>caminho de erro ou recusa</span>
+  <span><i class="neutral"></i>caminho neutro</span>
+  <span>Clique no cabeçalho de um card para ler a explicação; use os botões de ramo para ocultar/mostrar um caminho.</span>
+  <span class="generator gen" id="generator-global"></span>
 </div>
 
 <script id="flow-data" type="application/json">__FLOW_JSON__</script>
@@ -416,9 +544,11 @@
 (function () {
   "use strict";
 
-  const FLOW = JSON.parse(document.getElementById("flow-data").textContent);
+  const DOC = JSON.parse(document.getElementById("flow-data").textContent);
   const root = document.documentElement;
-  const $ = (id) => document.getElementById(id);
+  const $g = (id) => document.getElementById(id);
+  const isBundleDoc = DOC.meta && DOC.meta.kind === "bundle";
+  const flowList = isBundleDoc ? DOC.flows : [DOC];
 
   /* ------------------------------------------------------------ */
   /* Utilidades                                                    */
@@ -441,9 +571,49 @@
     set(k, v) { try { localStorage.setItem("flowview." + k, v); } catch (e) {} },
   };
 
-  /* ------------------------------------------------------------ */
-  /* Grafo                                                         */
-  /* ------------------------------------------------------------ */
+  const globalUi = {
+    mode: store.get("mode", "business"),
+    motion: store.get("motion", "live"),
+    theme: store.get("theme", "dark"),
+    zoom: 1,
+    autoFit: true,
+  };
+  root.dataset.theme = globalUi.theme;
+  root.dataset.motion = globalUi.motion;
+
+  function flowSectionHtml(index, flow) {
+    const r = flow.meta.route;
+    const steps = flow.nodes.length;
+    const outs = (flow.meta.outcomes || []).length;
+    return `
+    <section class="flow-section" id="flow-${index}" data-flow-index="${index}">
+      <header class="section-head">
+        <span class="section-index">Rota ${index + 1} de <span class="flow-count"></span></span>
+        <span class="method">${esc(r.method)}</span>
+        <span class="route-path">${esc(r.path)}</span>
+      </header>
+      <section class="summary">
+        <p class="intro"></p>
+        <div class="strip inputs"></div>
+        <div class="strip outcomes"></div>
+      </section>
+      <div class="banner"></div>
+      <div class="viewport">
+        <div class="sizer">
+          <div class="stage">
+            <svg class="edges"></svg>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function createFlowView(mountEl, FLOW, opts) {
+    opts = opts || {};
+    const $ = (sel) => mountEl.querySelector(sel);
+
+    /* Grafo                                                         */
+    /* ------------------------------------------------------------ */
   const NODES = FLOW.nodes;
   const BY_ID = new Map(NODES.map((n) => [n.id, n]));
   const EDGES = FLOW.edges.map((e, i) => ({ ...e, key: "e" + i }));
@@ -486,16 +656,19 @@
   /* Estado                                                        */
   /* ------------------------------------------------------------ */
   const state = {
-    mode: store.get("mode", "business"),
-    motion: store.get("motion", "live"),
-    theme: store.get("theme", "dark"),
+    get mode() { return globalUi.mode; },
+    set mode(v) { globalUi.mode = v; },
+    get motion() { return globalUi.motion; },
+    set motion(v) { globalUi.motion = v; },
     open: new Set(),
     collapsed: new Set(),
-    zoom: 1,
+    zoom: globalUi.zoom,
     highlight: null,
+    autoFit: globalUi.autoFit,
+    hl: new Set(),
+    collapsedCount: new Map(),
+    size: { w: 0, h: 0 },
   };
-  root.dataset.theme = state.theme;
-  root.dataset.motion = state.motion;
 
   function visibleSet(extraCollapsed) {
     const seen = new Set([FLOW.entry]);
@@ -624,8 +797,8 @@
   /* ------------------------------------------------------------ */
   /* DOM dos cards                                                 */
   /* ------------------------------------------------------------ */
-  const stage = $("stage");
-  const svg = $("edges");
+  const stage = $(".stage");
+  const svg = $(".edges");
   const CARDS = new Map();
 
   function buildCard(n) {
@@ -951,9 +1124,10 @@
     svg.innerHTML = "";
     svg.setAttribute("width", R.width);
     svg.setAttribute("height", R.height);
+    const mkId = (opts.uid || "f0") + "-";
     const defs = svgEl("defs", {});
     for (const t of ["ok", "neutral", "error"]) {
-      const m = svgEl("marker", { id: "ah-" + t, markerWidth: 10, markerHeight: 8, refX: 9, refY: 4, orient: "auto", markerUnits: "userSpaceOnUse" });
+      const m = svgEl("marker", { id: "ah-" + mkId + t, markerWidth: 10, markerHeight: 8, refX: 9, refY: 4, orient: "auto", markerUnits: "userSpaceOnUse" });
       m.appendChild(svgEl("polygon", { points: "0 0, 10 4, 0 8", class: "arrow-" + t }));
       defs.appendChild(m);
     }
@@ -963,7 +1137,7 @@
       const e = P.e;
       const d = roundedPath(P.pts, 12);
       const g = svgEl("g", { class: "edge-grp" + (state.highlight && !(state.hl.has(e.from) && state.hl.has(e.to)) ? " dim" : "") });
-      const base = svgEl("path", { d, class: "edge-base " + e.tone, "marker-end": `url(#ah-${e.tone})` });
+      const base = svgEl("path", { d, class: "edge-base " + e.tone, "marker-end": `url(#ah-${mkId}${e.tone})` });
       g.appendChild(base);
       const flow = svgEl("path", { d, pathLength: 100, class: "edge-flow " + e.tone });
       flow.style.animationDelay = (P.rank * 0.45).toFixed(2) + "s";
@@ -1054,17 +1228,16 @@
         if (el) window.scrollBy({ top: el.getBoundingClientRect().top - prevTop, behavior: "instant" });
       });
     }
-    $("btn-expand").textContent = state.open.size >= L.nodes.length ? "Recolher tudo" : "Expandir tudo";
-    syncToolbar();
+    if (opts.onExpandHint) opts.onExpandHint(state.open.size >= L.nodes.length);
   }
 
   function applyZoom() {
     const z = state.zoom;
-    const vpW = $("viewport").clientWidth;
+    const vpW = $(".viewport").clientWidth;
     const w = state.size.w * z;
     const offset = Math.max(0, (vpW - w) / 2);   // centraliza o diagrama quando sobra espaço
-    $("sizer").style.width = Math.max(vpW, w) + "px";
-    $("sizer").style.height = state.size.h * z + "px";
+    $(".sizer").style.width = Math.max(vpW, w) + "px";
+    $(".sizer").style.height = state.size.h * z + "px";
     stage.style.width = state.size.w + "px";
     stage.style.height = state.size.h + "px";
     stage.style.left = offset + "px";
@@ -1072,7 +1245,7 @@
   }
 
   function fit() {
-    const avail = $("viewport").clientWidth - 4;
+    const avail = $(".viewport").clientWidth - 4;
     state.zoom = Math.max(0.35, Math.min(1, avail / state.size.w));
     applyZoom();
   }
@@ -1080,13 +1253,6 @@
   function setZoom(z) {
     state.zoom = Math.max(0.3, Math.min(1.6, z));
     applyZoom();
-  }
-
-  function syncToolbar() {
-    $("btn-biz").classList.toggle("on", state.mode === "business");
-    $("btn-tech").classList.toggle("on", state.mode === "tech");
-    $("btn-live").classList.toggle("on", state.motion === "live");
-    $("btn-still").classList.toggle("on", state.motion === "still");
   }
 
   /* ------------------------------------------------------------ */
@@ -1113,87 +1279,30 @@
     }, 60);
   }
 
-  stage.addEventListener("click", (ev) => {
-    const g = ev.target.closest("[data-goto]");
-    if (g) { ev.stopPropagation(); revealAndGo(g.dataset.goto, g.dataset.edge); return; }
-    const b = ev.target.closest("[data-branch]");
-    if (b) {
-      ev.stopPropagation();
-      const k = b.dataset.branch;
-      const owner = EDGES.find((e) => e.key === k).from;
-      if (state.collapsed.has(k)) state.collapsed.delete(k); else state.collapsed.add(k);
-      render(owner);
-      return;
-    }
-    const h = ev.target.closest("[data-toggle]");
-    if (h) toggleOpen(h.dataset.toggle);
-  });
-  stage.addEventListener("keydown", (ev) => {
-    if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches("[data-toggle]")) {
-      ev.preventDefault(); toggleOpen(ev.target.dataset.toggle);
-    }
-  });
-
-  $("btn-biz").onclick = () => { state.mode = "business"; store.set("mode", "business"); render(); };
-  $("btn-tech").onclick = () => { state.mode = "tech"; store.set("mode", "tech"); render(); };
-  $("btn-live").onclick = () => { state.motion = "live"; root.dataset.motion = "live"; store.set("motion", "live"); syncToolbar(); };
-  $("btn-still").onclick = () => { state.motion = "still"; root.dataset.motion = "still"; store.set("motion", "still"); syncToolbar(); };
-  $("btn-theme").onclick = () => { state.theme = state.theme === "dark" ? "light" : "dark"; root.dataset.theme = state.theme; store.set("theme", state.theme); };
-  $("btn-expand").onclick = () => {
-    const vis = visibleSet();
-    if (state.open.size >= vis.size) state.open.clear(); else vis.forEach((id) => state.open.add(id));
+  function clearHighlight() {
+    state.highlight = null;
+    $(".banner").classList.remove("show");
+    mountEl.querySelectorAll(".outcomes .chip").forEach((c) => c.classList.remove("on"));
     render();
-  };
-  $("btn-zin").onclick = () => setZoom(state.zoom * 1.15);
-  $("btn-zout").onclick = () => setZoom(state.zoom / 1.15);
-  $("btn-fit").onclick = () => { state.autoFit = true; fit(); };
-  function measureTopbar() {
-    document.documentElement.style.setProperty("--topbar-h", $("topbar").offsetHeight + "px");
   }
-  window.addEventListener("resize", () => { measureTopbar(); if (state.autoFit) fit(); else applyZoom(); });
-  $("viewport").addEventListener("wheel", (ev) => {
-    if (ev.ctrlKey || ev.metaKey) { ev.preventDefault(); setZoom(state.zoom * (ev.deltaY < 0 ? 1.08 : 1 / 1.08)); state.autoFit = false; }
-  }, { passive: false });
-  $("btn-zin").addEventListener("click", () => (state.autoFit = false));
-  $("btn-zout").addEventListener("click", () => (state.autoFit = false));
 
-  // arrastar para mover
-  (function () {
-    const vp = $("viewport");
-    let drag = null;
-    vp.addEventListener("pointerdown", (ev) => {
-      if (ev.target.closest(".card, .ghost, button")) return;
-      drag = { x: ev.clientX, y: ev.clientY, sl: vp.scrollLeft };
-      vp.classList.add("panning");
-      vp.setPointerCapture(ev.pointerId);
-    });
-    vp.addEventListener("pointermove", (ev) => {
-      if (!drag) return;
-      vp.scrollLeft = drag.sl - (ev.clientX - drag.x);
-      window.scrollBy(0, -(ev.clientY - drag.y)); drag.y = ev.clientY;
-    });
-    const end = () => { drag = null; vp.classList.remove("panning"); };
-    vp.addEventListener("pointerup", end);
-    vp.addEventListener("pointercancel", end);
-  })();
-
-  /* ------------------------------------------------------------ */
-  /* Cabeçalho: título, intro, entradas e desfechos                */
-  /* ------------------------------------------------------------ */
   function renderHeader() {
     const r = FLOW.meta.route;
-    document.title = `${r.method} ${r.path} · Flow View`;
-    $("title").innerHTML = `<span class="method">${esc(r.method)}</span><span class="route-path">${esc(r.path)}</span>`;
-    $("intro").innerHTML = rich(FLOW.meta.intro || FLOW.meta.summary || "");
+    if (!opts.inSection) {
+      document.title = `${r.method} ${r.path} · Flow View`;
+      $g("title").innerHTML = `<span class="method">${esc(r.method)}</span><span class="route-path">${esc(r.path)}</span>`;
+    }
+    $(".intro").innerHTML = rich(FLOW.meta.intro || FLOW.meta.summary || "");
 
     const entry = BY_ID.get(FLOW.entry);
     const facts = (entry && entry.meta.facts) || [];
-    $("inputs").innerHTML = facts.length
+    $(".inputs").innerHTML = facts.length
       ? `<span class="strip-label">Recebe</span>` + facts.map((f) => `<span class="chip input"><span class="mark">${esc(f.k)}:</span> ${rich(f.v)}</span>`).join("")
       : "";
 
     const outs = FLOW.meta.outcomes || [];
-    $("outcomes").innerHTML = outs.length
+    const outcomesEl = $(".outcomes");
+    outcomesEl.innerHTML = outs.length
       ? `<span class="strip-label">Pode terminar em</span>` +
         outs.map((o, i) => {
           const txt = o.status ? `${o.status} ${esc(o.statusText || "")}` : esc(o.statusText || "");
@@ -1203,51 +1312,215 @@
         }).join("")
       : "";
 
-    $("outcomes").addEventListener("click", (ev) => {
+    outcomesEl.onclick = (ev) => {
       const b = ev.target.closest("[data-out]");
       if (!b) return;
       const o = outs[Number(b.dataset.out)];
       if (state.highlight === o.nodeId) { clearHighlight(); return; }
       if (!visibleSet().has(o.nodeId)) state.collapsed.clear();
       state.highlight = o.nodeId;
-      document.querySelectorAll("#outcomes .chip").forEach((c) => c.classList.toggle("on", c === b));
-      const bn = $("banner");
+      mountEl.querySelectorAll(".outcomes .chip").forEach((c) => c.classList.toggle("on", c === b));
+      const bn = $(".banner");
       bn.style.setProperty("--banner", o.tone === "ok" ? "var(--ok)" : o.tone === "error" ? "var(--err)" : "var(--text-dim)");
       const when = (o.reachedWhen || []);
       bn.innerHTML = `<strong>${esc(b.textContent.trim())}</strong> — ` +
         (when.length ? `acontece quando ${when.map(rich).join("; <em>e</em> ")}.` : "acontece quando nenhuma regra anterior impede o fluxo.") +
-        `<button class="linkbtn" id="clear-hl">limpar destaque</button>`;
+        `<button class="linkbtn clear-hl">limpar destaque</button>`;
       bn.classList.add("show");
-      $("clear-hl").onclick = clearHighlight;
+      const clr = bn.querySelector(".clear-hl");
+      if (clr) clr.onclick = clearHighlight;
       render();
       goto(o.nodeId);
-    });
+    };
   }
 
-  function clearHighlight() {
-    state.highlight = null;
-    $("banner").classList.remove("show");
-    document.querySelectorAll("#outcomes .chip").forEach((c) => c.classList.remove("on"));
+  function init() {
+    renderHeader();
+    for (const n of NODES) buildCard(n);
+    state.zoom = globalUi.zoom;
+    state.autoFit = globalUi.autoFit;
     render();
+    fit();
   }
-  document.addEventListener("keydown", (ev) => { if (ev.key === "Escape" && state.highlight) clearHighlight(); });
 
-  /* ------------------------------------------------------------ */
-  /* Início                                                        */
-  /* ------------------------------------------------------------ */
-  renderHeader();
-  const gen = FLOW.meta.generator;
-  if (gen && gen.name) $("generator").textContent = `Gerado por ${gen.name} v${gen.version}`;
+    stage.addEventListener("click", (ev) => {
+      const g = ev.target.closest("[data-goto]");
+      if (g) { ev.stopPropagation(); revealAndGo(g.dataset.goto, g.dataset.edge); return; }
+      const b = ev.target.closest("[data-branch]");
+      if (b) {
+        ev.stopPropagation();
+        const k = b.dataset.branch;
+        const owner = EDGES.find((e) => e.key === k).from;
+        if (state.collapsed.has(k)) state.collapsed.delete(k); else state.collapsed.add(k);
+        render(owner);
+        return;
+      }
+      const h = ev.target.closest("[data-toggle]");
+      if (h) toggleOpen(h.dataset.toggle);
+    });
+    stage.addEventListener("keydown", (ev) => {
+      if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches("[data-toggle]")) {
+        ev.preventDefault(); toggleOpen(ev.target.dataset.toggle);
+      }
+    });
+
+    const vp = $(".viewport");
+    vp.addEventListener("wheel", (ev) => {
+      if (ev.ctrlKey || ev.metaKey) {
+        ev.preventDefault();
+        setZoom(state.zoom * (ev.deltaY < 0 ? 1.08 : 1 / 1.08));
+        globalUi.autoFit = false;
+        state.autoFit = false;
+      }
+    }, { passive: false });
+  let drag = null;
+  vp.addEventListener("pointerdown", (ev) => {
+    if (ev.target.closest(".card, .ghost, button")) return;
+    drag = { x: ev.clientX, y: ev.clientY, sl: vp.scrollLeft };
+    vp.classList.add("panning");
+    vp.setPointerCapture(ev.pointerId);
+  });
+  vp.addEventListener("pointermove", (ev) => {
+    if (!drag) return;
+    vp.scrollLeft = drag.sl - (ev.clientX - drag.x);
+    window.scrollBy(0, -(ev.clientY - drag.y)); drag.y = ev.clientY;
+  });
+  const endPan = () => { drag = null; vp.classList.remove("panning"); };
+  vp.addEventListener("pointerup", endPan);
+  vp.addEventListener("pointercancel", endPan);
+
+    return {
+      FLOW,
+      getState: () => state,
+      render,
+      fit,
+      setZoom(z) { state.zoom = z; globalUi.zoom = z; applyZoom(); },
+      setMode(m) { globalUi.mode = m; state.mode = m; render(); },
+      setMotion(m) { globalUi.motion = m; state.motion = m; },
+      expandAll() { visibleSet().forEach((id) => state.open.add(id)); render(); },
+      collapseAll() { state.open.clear(); render(); },
+      isFullyExpanded() { return state.open.size >= visibleSet().size; },
+      clearHighlight,
+      init,
+    };
+  }
+
+  const instances = [];
+
+  function measureTopbar() {
+    document.documentElement.style.setProperty("--topbar-h", $g("topbar").offsetHeight + "px");
+  }
+
+  function syncToolbar() {
+    $g("btn-biz").classList.toggle("on", globalUi.mode === "business");
+    $g("btn-tech").classList.toggle("on", globalUi.mode === "tech");
+    $g("btn-live").classList.toggle("on", globalUi.motion === "live");
+    $g("btn-still").classList.toggle("on", globalUi.motion === "still");
+  }
+
+  function updateExpandLabel() {
+    const allOpen = instances.length && instances.every((i) => i.isFullyExpanded());
+    $g("btn-expand").textContent = allOpen ? "Recolher tudo" : "Expandir tudo";
+  }
+
+  function wireGlobalToolbar() {
+    $g("btn-biz").onclick = () => { globalUi.mode = "business"; store.set("mode", "business"); instances.forEach((i) => i.setMode("business")); syncToolbar(); updateExpandLabel(); };
+    $g("btn-tech").onclick = () => { globalUi.mode = "tech"; store.set("mode", "tech"); instances.forEach((i) => i.setMode("tech")); syncToolbar(); updateExpandLabel(); };
+    $g("btn-live").onclick = () => { globalUi.motion = "live"; root.dataset.motion = "live"; store.set("motion", "live"); instances.forEach((i) => { i.setMotion("live"); }); syncToolbar(); };
+    $g("btn-still").onclick = () => { globalUi.motion = "still"; root.dataset.motion = "still"; store.set("motion", "still"); instances.forEach((i) => { i.setMotion("still"); }); syncToolbar(); };
+    $g("btn-theme").onclick = () => {
+      globalUi.theme = globalUi.theme === "dark" ? "light" : "dark";
+      root.dataset.theme = globalUi.theme;
+      store.set("theme", globalUi.theme);
+    };
+    $g("btn-expand").onclick = () => {
+      const allOpen = instances.every((i) => i.isFullyExpanded());
+      if (allOpen) instances.forEach((i) => i.collapseAll()); else instances.forEach((i) => i.expandAll());
+      updateExpandLabel();
+    };
+    $g("btn-zin").onclick = () => { globalUi.autoFit = false; instances.forEach((i) => i.setZoom(i.getState().zoom * 1.15)); };
+    $g("btn-zout").onclick = () => { globalUi.autoFit = false; instances.forEach((i) => i.setZoom(i.getState().zoom / 1.15)); };
+    $g("btn-fit").onclick = () => { globalUi.autoFit = true; instances.forEach((i) => { i.getState().autoFit = true; i.fit(); }); };
+    syncToolbar();
+  }
+
+  function buildNav(flows) {
+    const nav = $g("flow-nav");
+    nav.innerHTML = flows
+      .map((flow, i) => {
+        const r = flow.meta.route;
+        const steps = flow.nodes.length;
+        const outs = (flow.meta.outcomes || []).length;
+        return `<li><a href="#flow-${i}" data-nav="${i}"><span class="ni-method">${esc(r.method)}</span><span class="ni-path">${esc(r.path)}</span><span class="ni-meta">${steps} passos · ${outs} desfechos</span></a></li>`;
+      })
+      .join("");
+    nav.addEventListener("click", (ev) => {
+      const a = ev.target.closest("a[data-nav]");
+      if (!a) return;
+      ev.preventDefault();
+      const el = document.getElementById("flow-" + a.dataset.nav);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!vis) return;
+        const id = vis.target.id.replace("flow-", "");
+        nav.querySelectorAll("a").forEach((l) => l.classList.toggle("on", l.dataset.nav === id));
+      },
+      { rootMargin: "-40% 0px -45% 0px", threshold: [0, 0.25, 0.5] }
+    );
+    document.querySelectorAll(".flow-section").forEach((sec) => obs.observe(sec));
+  }
+
+  const useBundleLayout = isBundleDoc && flowList.length > 1;
+
+  if (useBundleLayout) {
+    document.body.classList.add("bundle-mode");
+    $g("doc-layout").hidden = false;
+    $g("legend-global").hidden = false;
+    const title = DOC.meta.title || "Fluxos";
+    document.title = title + " · Flow View";
+    $g("title").innerHTML = `<span class="bundle-title">${esc(title)}</span><span class="bundle-count">(${flowList.length} rotas)</span>`;
+    const main = $g("flow-sections");
+    main.innerHTML = flowList.map((flow, i) => flowSectionHtml(i, flow)).join("");
+    main.querySelectorAll(".flow-count").forEach((el) => { el.textContent = String(flowList.length); });
+    flowList.forEach((flow, i) => {
+      const mount = document.getElementById("flow-" + i);
+      const api = createFlowView(mount, flow, { inSection: true, uid: "f" + i, onExpandHint: updateExpandLabel });
+      instances.push(api);
+    });
+    buildNav(flowList);
+    const gen = DOC.meta.generator || flowList[0].meta.generator;
+    if (gen && gen.name) $g("generator-global").textContent = `Gerado por ${gen.name} v${gen.version}`;
+  } else {
+    const api = createFlowView($g("flow-page"), flowList[0], { onExpandHint: (open) => { $g("btn-expand").textContent = open ? "Recolher tudo" : "Expandir tudo"; } });
+    instances.push(api);
+    const gen = flowList[0].meta.generator;
+    const genEl = $g("flow-page").querySelector(".generator");
+    if (gen && gen.name && genEl) genEl.textContent = `Gerado por ${gen.name} v${gen.version}`;
+  }
+
+  wireGlobalToolbar();
   measureTopbar();
-  for (const n of NODES) buildCard(n);
-  state.autoFit = true;
-  state.hl = new Set();
-  state.collapsedCount = new Map();
-  state.size = { w: 0, h: 0 };
-  render();
-  fit();
-  window.__flowview = { state, render, FLOW };
+  for (const api of instances) {
+    try {
+      api.init();
+    } catch (err) {
+      console.error("Flow View: falha ao iniciar um fluxo", err);
+    }
+  }
+  updateExpandLabel();
+  window.addEventListener("resize", () => {
+    measureTopbar();
+    instances.forEach((i) => { if (i.getState().autoFit) i.fit(); else i.render(); });
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") instances.forEach((i) => i.clearHighlight());
+  });
+  window.__flowview = { instances, DOC, globalUi };
 })();
+
 </script>
 </body>
 </html>

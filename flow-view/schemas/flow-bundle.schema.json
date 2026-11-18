@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/jadsgithub/flow-view/main/flow-view/schemas/flow-bundle.schema.json",
+  "title": "FlowViewBundle",
+  "type": "object",
+  "required": ["meta", "flows"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "kind"],
+      "properties": {
+        "version": { "type": "string" },
+        "kind": { "const": "bundle" },
+        "title": { "type": "string" },
+        "generator": {
+          "type": "object",
+          "properties": { "name": { "type": "string" }, "version": { "type": "string" } }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "flows": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": { "$ref": "flow.schema.json" }
+    }
+  }
+}

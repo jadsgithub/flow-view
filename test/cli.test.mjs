@@ -128,6 +128,68 @@ test("HTML usa o nome amigável do endpoint; --out grava fora do projeto", () =>
   }
 });
 
+test("bundle: várias rotas geram flows.json e HTML com índice", () => {
+  const dest = tmp();
+  try {
+    const r = runCli([
+      "--root",
+      SAMPLE,
+      "--bundle",
+      "--title",
+      "Pedidos e hello",
+      "--route",
+      "POST:/api/orders",
+      "--route",
+      "GET:/api/hello",
+      "--out",
+      dest,
+      "--no-open",
+      "--json",
+    ]);
+    assert.equal(r.status, 0, r.stderr);
+    const rec = JSON.parse(r.stdout);
+    assert.equal(rec.ok, true);
+    assert.equal(rec.bundle.routes.length, 2);
+    const bundle = JSON.parse(readFileSync(join(dest, "flows.json"), "utf8"));
+    assert.equal(bundle.meta.kind, "bundle");
+    assert.equal(bundle.flows.length, 2);
+    const html = readFileSync(rec.files.html, "utf8");
+    assert.ok(html.includes("flow-section"));
+    assert.ok(html.includes("flow-nav"));
+    assert.ok(html.includes("doc-layout"));
+    assert.ok(!html.includes("__FLOW_JSON__"));
+    assert.match(html, /const mkId = \(opts\.uid/, "viewer bundle: marcadores SVG únicos por fluxo");
+  } finally {
+    cleanup(dest);
+  }
+});
+
+test("--render-only regenera HTML a partir de flows.json", () => {
+  const dest = tmp();
+  try {
+    const gen = runCli([
+      "--root",
+      SAMPLE,
+      "--bundle",
+      "--route",
+      "GET:/api/hello",
+      "--route",
+      "GET:/api/complex",
+      "--out",
+      dest,
+      "--no-open",
+      "--json",
+    ]);
+    assert.equal(gen.status, 0, gen.stderr);
+    const rec = JSON.parse(gen.stdout);
+    const r = runCli(["--render-only", rec.files.json, "--out", join(dest, "r2"), "--no-open"]);
+    assert.equal(r.status, 0, r.stderr);
+    assert.ok(existsSync(join(dest, "r2", basename(rec.files.html))));
+  } finally {
+    cleanup(dest);
+  }
+});
+
 test("expande ~ em --out", () => {
   const home = tmp("fv-home-");
   try {

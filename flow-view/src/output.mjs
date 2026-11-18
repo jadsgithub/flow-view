@@ -34,6 +34,16 @@ export function htmlFileName(name) {
   return `${name}.html`;
 }
 
+/** Identificador de um documento com várias rotas: `bundle-checkout-20261118-161500`. */
+export function bundleRunName(title, date = new Date()) {
+  const slug = slugPath(title || "fluxos").replace(/-/g, "-").slice(0, 40) || "fluxos";
+  return `bundle-${slug}-${stampUtc(date)}`;
+}
+
+export function bundleHtmlFileName(name) {
+  return htmlFileName(name);
+}
+
 /** Só o basename, sem barras; rejeita qualquer coisa que não pareça o nosso slug. */
 export function assertHtmlFileName(name) {
   const base = String(name).replace(/^.*[/\\]/, "");

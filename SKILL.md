@@ -3,7 +3,7 @@ name: flow-view
 description: "Gera uma história interativa (HTML standalone, modo Negócio e modo Técnico) do que acontece em UMA rota/endpoint: middlewares, FormRequest/validação, autorização, controller, services, Eloquent, exceções, jobs/eventos e cada resposta possível (200, 401, 403, 404, 422, 409…). Foco principal em PHP/Laravel; também Express, Fastify, Hono, Next.js, FastAPI, Flask e Gin. Análise 100% estática, sem executar o código. Use quando o usuário pedir para entender, explicar, documentar ou desenhar o fluxo de um endpoint/rota (ex.: 'mostre o fluxo de POST /api/orders', 'o que acontece em /checkout?', 'explique essa rota para o time de negócio', 'diagrama do FormRequest/controller'). Não serve para dashboards nem para diagramas de arquitetura geral."
 license: MIT
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
   stack-principal: "PHP / Laravel"
 ---
 
@@ -38,11 +38,24 @@ Escolha a rota que corresponde ao pedido. Se houver mais de uma plausível, perg
 
 ### 2. Gerar o fluxo
 
+**Uma rota**
+
 ```bash
 node <skill>/flow-view/bin/flow-view.mjs --root . --method POST --path /api/orders --json
 # outro local, se o usuário pediu:
 node <skill>/flow-view/bin/flow-view.mjs --root . --method POST --path /api/orders --out ~/Desktop --json
 ```
+
+**Várias rotas no mesmo documento** (quando o usuário pedir mais de um endpoint, uma feature inteira, ou “junte estas rotas”):
+
+```bash
+node <skill>/flow-view/bin/flow-view.mjs --root . --bundle --title "Checkout" --json \
+  --route POST:/api/orders --route GET:/api/orders/{order}
+# ou arquivo de rotas:
+node <skill>/flow-view/bin/flow-view.mjs --root . --bundle --routes-file rotas.json --json
+```
+
+Saída: `flows.json` + `bundle-<titulo>-<data>.html` (índice lateral; cada rota em seção própria).
 
 - `--path` aceita a URL real (`/api/orders/42`) ou o padrão da rota (`/api/orders/{order}`).
 - Com `--json` o comando imprime **só** um recibo JSON e não abre o navegador (use `--open` se o usuário pedir para abrir).
@@ -116,7 +129,11 @@ A skill é a forma principal, mas o mesmo motor funciona como:
 | `--json` | Imprime só o recibo JSON; não abre o navegador |
 | `--out <dir>` | Pasta de saída; pode ser fora do projeto. Default: `<root>/.flow-view/<método>-<rota>-<data>/`. O HTML se chama `<método>-<rota>-<data>.html` |
 | `--open` / `--no-open` | Força abrir / não abrir o navegador |
-| `--render-only <flow.json>` | Só gera o HTML a partir de um IR existente |
+| `--bundle` | Documento com várias rotas (`flows.json` + HTML com índice) |
+| `--route <VERBO>:<path>` | Rota no bundle (repetível) |
+| `--routes-file <arq>` | JSON com lista de rotas |
+| `--title <texto>` | Título do bundle |
+| `--render-only <flow.json>` | Só gera o HTML a partir de um `flow.json` ou `flows.json` |
 | `-v`, `--version` / `-h`, `--help` | Versão (SemVer) e ajuda |
 
 Requisitos: **Node.js 18+**. Zero dependências.
