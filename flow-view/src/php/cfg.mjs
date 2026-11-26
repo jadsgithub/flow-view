@@ -158,6 +158,9 @@ export function buildPhpCfg(opt) {
     if (d.transaction) meta.transaction = true;
     if (d.outcome && !(closureDepth > 0 && d.nodeType === "return")) meta.outcome = d.outcome;
     if (d.varName) meta.varName = d.varName;
+    if (d.responseSample) meta.responseSample = d.responseSample;
+    if (d.responseFields) meta.responseFields = d.responseFields;
+    if (d.requestSample) meta.requestSample = d.requestSample;
 
     let callee = d.callee;
     if (!callee && d.rules) callee = { name: "validate", file: file.rel, line, className: null, params: [], summary: ruleSummaryItems(d.rules, file.rel, line) };
@@ -393,7 +396,10 @@ export function buildPhpCfg(opt) {
         let exits = tryExits;
         for (const fc of frame.catches) {
           const body = fc.node.body;
+          const prevCatch = ctx.catchException;
+          if (fc.types && fc.types[0]) ctx.catchException = fc.types[0];
           const catchExits = body.length ? walk(body, [{ from: fc.id, label: "segue" }], frames, closureDepth) : [{ from: fc.id, label: "segue" }];
+          ctx.catchException = prevCatch;
           exits = exits.concat(catchExits);
         }
         if (s.finally && exits.length) {

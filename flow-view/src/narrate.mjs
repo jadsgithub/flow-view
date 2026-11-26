@@ -11,6 +11,7 @@ import {
   matchClose,
   skipString,
 } from "./jsparse.mjs";
+import { buildResponseSample } from "./samples.mjs";
 
 const STATUS_TEXT = {
   200: "OK",
@@ -485,6 +486,8 @@ function describeReturn(rest) {
           ? "É um caminho de **falha**: algo deu errado e o cliente recebe um erro."
           : "É um caminho de **rejeição**: a requisição é recusada e o processamento para aqui."
         : "É um caminho de **sucesso**: o pedido foi atendido e o processamento termina aqui.";
+    const keys = fields.map((f) => ({ k: f.k, v: f.v }));
+    const responseSample = buildResponseSample({ status: st, kind: resp.json === false ? "other" : "json", keys });
     return {
       nodeType: "return",
       title: `Responde ${st} · ${txt}`,
@@ -492,6 +495,7 @@ function describeReturn(rest) {
       facts,
       tone,
       outcome: { status: st, statusText: txt, tone, detail: resp.body ? trunc(resp.body.replace(/\s+/g, " "), 38) : "" },
+      ...(responseSample ? { responseSample } : {}),
     };
   }
   return {

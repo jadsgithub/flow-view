@@ -3,9 +3,9 @@
  * Suporta: PHP/Laravel (primeiro da lista), Express, Fastify, Hono, Next.js App Router, FastAPI, Flask, Gin.
  */
 
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { MAX_FILE_BYTES, MAX_FILES, MAX_DEPTH, escapeRegExp } from "./security.mjs";
+import { MAX_FILES, MAX_DEPTH, escapeRegExp, readFileIfSmall, normHttpMethod } from "./security.mjs";
 import { createPhpProject, isLaravelProject } from "./php/project.mjs";
 import { loadLaravelRoutes, matchRoutes, summarizeRoutes } from "./php/routes.mjs";
 
@@ -34,8 +34,7 @@ function normPath(p) {
 }
 
 function normMethod(m) {
-  const u = String(m || "GET").toUpperCase();
-  return u === "ANY" ? "ANY" : u;
+  return normHttpMethod(m);
 }
 
 function pathMatches(pattern, target) {
@@ -88,7 +87,7 @@ function lineOfIndex(content, index) {
  * Express / Router: app.get('path', ...) router.post(...
  */
 function scanExpressLike(content, rel, method, path) {
-  const methods = method === "ANY" ? "(get|post|put|patch|delete|use|all)" : method.toLowerCase();
+  const methods = method === "ANY" ? "(get|post|put|patch|delete|use|all)" : escapeRegExp(method.toLowerCase());
   const re = new RegExp(
     `\\.(?:${methods})\\s*\\(\\s*["'\`]([^"'\`]+)["'\`]`,
     "gi"
@@ -147,7 +146,7 @@ function scanNextAppRoute(content, rel, method, path) {
   if (!pathMatches(inferred, path)) return null;
   const exportName = method === "ANY" ? "GET" : method;
   const fnRe = new RegExp(
-    `export\\s+(?:async\\s+)?function\\s+${exportName}\\b`
+    `export\\s+(?:async\\s+)?function\\s+${escapeRegExp(exportName)}\\b`
   );
   const m = content.match(fnRe);
   if (!m) return null;
@@ -163,7 +162,7 @@ function scanNextAppRoute(content, rel, method, path) {
 
 /** FastAPI: @app.get("/path") @router.post */
 function scanFastAPI(content, rel, method, path) {
-  const decorators = method === "ANY" ? "get|post|put|patch|delete" : method.toLowerCase();
+  const decorators = method === "ANY" ? "get|post|put|patch|delete" : escapeRegExp(method.toLowerCase());
   const re = new RegExp(
     `@(?:app|router)\\.(${decorators})\\s*\\(\\s*["']([^"']+)["']`,
     "gi"
@@ -220,7 +219,7 @@ function scanFlask(content, rel, method, path) {
 /** Gin: r.GET("/x", ...) router.POST */
 function scanGin(content, rel, method, path) {
   const map = { GET: "GET", POST: "POST", PUT: "PUT", PATCH: "PATCH", DELETE: "DELETE" };
-  const ginMethod = method === "ANY" ? "[A-Z]+" : map[method] || method;
+  const ginMethod = method === "ANY" ? "[A-Z]+" : escapeRegExp(map[method] || method);
   const re = new RegExp(`\\b\\w+\\.(${ginMethod})\\s*\\(\\s*["']([^"']+)["']`, "g");
   let m;
   while ((m = re.exec(content)) !== null) {
@@ -256,13 +255,8 @@ export async function findRouteHandler(opts) {
   const hits = [];
 
   for (const { full, rel } of files) {
-    let content;
-    try {
-      if ((await stat(full)).size > MAX_FILE_BYTES) continue;
-      content = await readFile(full, "utf8");
-    } catch {
-      continue;
-    }
+    const content = await readFileIfSmall(full);
+    if (content == null) continue;
 
     const byExt = rel.toLowerCase();
     let hit = null;

@@ -333,13 +333,32 @@ function ctorMiddleware(project, cls, methodName) {
   const ctor = cls && cls.methods.get("__construct");
   if (ctor && ctor.bodyOpen >= 0) {
     const body = project.methodBody(ctor);
-    for (const m of body.matchAll(/\$this->middleware\s*\(([^;]*?)\)\s*((?:->\s*(?:only|except)\s*\([^;]*?\)\s*)*);/g)) {
-      const names = splitArgs(m[1]).map(str).filter(Boolean);
-      const only = /->\s*only\s*\(([^)]*)\)/.exec(m[2]);
-      const except = /->\s*except\s*\(([^)]*)\)/.exec(m[2]);
-      const list = (x) => [...x.matchAll(/['"]([\w]+)['"]/g)].map((y) => y[1]);
-      if (only && !list(only[1]).includes(methodName)) continue;
-      if (except && list(except[1]).includes(methodName)) continue;
+    const startRe = /\$this->middleware\s*\(/g;
+    let m;
+    while ((m = startRe.exec(body)) !== null) {
+      const open = m.index + m[0].length - 1;
+      const close = matchClose(body, open);
+      if (close < 0) break;
+      const names = splitArgs(body.slice(open + 1, close)).map(str).filter(Boolean);
+      let k = close + 1;
+      let only = null;
+      let except = null;
+      for (;;) {
+        const chain = /^\s*->\s*(only|except)\s*\(/.exec(body.slice(k));
+        if (!chain) break;
+        const paren = k + chain[0].length - 1;
+        const end = matchClose(body, paren);
+        if (end < 0) break;
+        const inner = body.slice(paren + 1, end);
+        if (chain[1] === "only") only = inner;
+        else except = inner;
+        k = end + 1;
+      }
+      startRe.lastIndex = k;
+      if (!/^\s*;/.test(body.slice(k))) continue;
+      const list = (x) => [...String(x).matchAll(/['"]([\w]+)['"]/g)].map((y) => y[1]);
+      if (only && !list(only).includes(methodName)) continue;
+      if (except && list(except).includes(methodName)) continue;
       out.push(...names);
     }
   }
@@ -461,7 +480,7 @@ export function buildLaravelFlow({ scan, root, pushNode, edges, entryId, entryNo
     });
   }
 
-  function guardNode({ type, label, story, pos, neg, outcome, facts, file, line, technical, callee, snippet, symbol }) {
+  function guardNode({ type, label, story, pos, neg, outcome, facts, file, line, technical, callee, snippet, symbol, validationRules }) {
     const id = pushNode({
       type,
       label,
@@ -471,7 +490,15 @@ export function buildLaravelFlow({ scan, root, pushNode, edges, entryId, entryNo
       file,
       explanation: story,
       symbol: symbol || emptySym(),
-      meta: { pos, neg, question: label, tone: "neutral", facts: facts || [], ...(callee ? { callee } : {}) },
+      meta: {
+        pos,
+        neg,
+        question: label,
+        tone: "neutral",
+        facts: facts || [],
+        ...(callee ? { callee } : {}),
+        ...(validationRules && validationRules.length ? { validationRules } : {}),
+      },
     });
     connect(id);
     link(id, failNode(outcome, file, line), "não");
@@ -627,6 +654,7 @@ export function buildLaravelFlow({ scan, root, pushNode, edges, entryId, entryNo
     const frCtx = rulesM ? resolver.ctxFor(rulesM, { requestSelf: true }) : { project, requestSelf: true, file: fr.cls.file, cls: fr.cls };
     const rules = rulesM && rulesM.bodyOpen >= 0 ? extractRules(project, rulesM, frCtx) : [];
     validatedFields.push(...rules);
+    ctx.validatedFields = validatedFields;
     const messages = project.findMethod(fr.cls, "messages");
     const hasMsgs = Boolean(messages && messages.bodyOpen >= 0 && project.methodBody(messages).trim());
     const uniq = (xs) => [...new Set(xs)];
@@ -660,6 +688,7 @@ export function buildLaravelFlow({ scan, root, pushNode, edges, entryId, entryNo
       line: rulesM ? rulesM.line : fr.cls.line,
       technical: `${fr.cls.name}::rules()`,
       callee: rules.length ? { name: "rules", file: frFile.rel, line: rulesM.line, className: fr.cls.name, params: [], summary: ruleSummaryItems(rules, frFile.rel, rulesM.line) } : undefined,
+      validationRules: rules.length ? rules : undefined,
       symbol: emptySym({ className: fr.cls.name, functionName: "rules" }),
     });
   }

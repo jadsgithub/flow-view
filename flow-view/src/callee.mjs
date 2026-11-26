@@ -4,7 +4,7 @@
  */
 
 import { readFileSync, existsSync, statSync } from "node:fs";
-import { isInside, isReadableSource } from "./security.mjs";
+import { isInside, isReadableSource, escapeRegExp } from "./security.mjs";
 import path from "node:path";
 import {
   stripJsComments,
@@ -239,8 +239,9 @@ export function createCalleeResolver({ filePath, content, rootDir, maxDepth = 2 
       return null;
     }
     const root0 = recv.split(".")[0];
+    if (!/^[\w$]+$/.test(root0)) return null;
     // 2) instância de classe local: const x = new Cls()
-    const nm = main.src.match(new RegExp(`(?:const|let|var)\\s+${root0.replace(/\$/g, "\\$")}\\s*=\\s*(?:await\\s+)?new\\s+([\\w$]+)`));
+    const nm = main.src.match(new RegExp(`(?:const|let|var)\\s+${escapeRegExp(root0)}\\s*=\\s*(?:await\\s+)?new\\s+([\\w$]+)`));
     const clsName = nm ? nm[1] : null;
     if (clsName) {
       const d = main.defs.find((x) => x.className === clsName && x.name === name);
@@ -271,10 +272,10 @@ export function createCalleeResolver({ filePath, content, rootDir, maxDepth = 2 
     for (const p of def.params) {
       if (!/^[\w$]+$/.test(p)) continue;
       const set = new Set();
-      for (const m of body.matchAll(new RegExp(`(?<![\\w$.])${p.replace(/\$/g, "\\$")}\\??\\.([\\w$]+)`, "g"))) {
+      for (const m of body.matchAll(new RegExp(`(?<![\\w$.])${escapeRegExp(p)}\\??\\.([\\w$]+)`, "g"))) {
         if (!IGNORED_FIELDS.has(m[1])) set.add(m[1]);
       }
-      for (const m of body.matchAll(new RegExp(`(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*${p.replace(/\$/g, "\\$")}\\b`, "g"))) {
+      for (const m of body.matchAll(new RegExp(`(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*${escapeRegExp(p)}\\b`, "g"))) {
         m[1].split(",").forEach((x) => {
           const n = x.split(":")[0].split("=")[0].trim();
           if (n) set.add(n);

@@ -136,7 +136,7 @@
   .strip:empty { display: none; }
   @media (min-width: 1100px) {
     .summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 0 2rem; }
-    .summary .intro, .summary .inputs, .summary .outcomes { grid-column: 1 / -1; }
+    .summary .intro, .summary .inputs, .summary .outcomes, .summary .curl { grid-column: 1 / -1; }
   }
   .strip-label {
     font-size: 0.62rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
@@ -289,9 +289,16 @@
     text-align: left;
   }
   .inside { list-style: none; margin: 0; padding: 0; font-size: 0.8rem; border-left: 2px solid color-mix(in srgb, var(--tone) 30%, transparent); padding-left: 0.6rem; min-width: 0; }
-  .inside li { display: flex; gap: 0.5rem; justify-content: space-between; align-items: flex-start; padding: 0.15rem 0; color: var(--text); min-width: 0; }
-  .inside li .tx { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
-  .inside li .ln { flex: none; font-size: 0.64rem; color: var(--text-dim); padding-top: 0.2rem; }
+  .inside li {
+    display: flex; flex-wrap: wrap; gap: 0.2rem 0.5rem; align-items: flex-start;
+    padding: 0.15rem 0; color: var(--text); min-width: 0;
+  }
+  .inside li .tx { flex: 1 1 10rem; min-width: 0; overflow-wrap: break-word; word-break: break-word; }
+  .inside li .ln {
+    flex: 0 0 auto; max-width: 100%; margin-left: auto; text-align: right;
+    font-size: 0.64rem; color: var(--text-dim); padding-top: 0.2rem; line-height: 1.35;
+    overflow-wrap: break-word; word-break: break-all;
+  }
   .inside li.enter { color: var(--text-muted); font-style: italic; }
   .inside li.if > .tx, .inside li.else > .tx, .inside li.loop > .tx, .inside li.try > .tx, .inside li.catch > .tx,
   .inside li.switch > .tx, .inside li.case > .tx { color: var(--decision-stroke); font-weight: 600; }
@@ -302,6 +309,37 @@
     background: var(--code-bg); border: 1px solid color-mix(in srgb, var(--text-muted) 20%, transparent);
     font-size: 0.74rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
   }
+  .code-panel {
+    margin: 0; border-radius: 8px; overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--text-muted) 22%, transparent);
+    background: var(--code-bg);
+  }
+  .code-panel-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    padding: 0.35rem 0.55rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--text-muted) 18%, transparent);
+    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .code-panel pre {
+    margin: 0; padding: 0.55rem 0.65rem; overflow-x: auto;
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 0.74rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+  }
+  .copybtn {
+    cursor: pointer; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.02em; text-transform: none;
+    padding: 0.18rem 0.55rem; border-radius: 6px;
+    border: 1px solid color-mix(in srgb, var(--entry-stroke) 45%, transparent);
+    background: color-mix(in srgb, var(--entry-fill) 40%, transparent);
+    color: var(--text);
+  }
+  .copybtn:hover { border-color: var(--entry-stroke); }
+  .copybtn.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 55%, transparent); }
+  .fields-hint { margin: 0 0 0.35rem; font-size: 0.74rem; color: var(--text-muted); line-height: 1.4; }
+  table.fields-src { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 0.45rem; }
+  table.fields-src th, table.fields-src td { border: 1px solid color-mix(in srgb, var(--text-muted) 22%, transparent); padding: 0.28rem 0.45rem; text-align: left; vertical-align: top; }
+  table.fields-src th { color: var(--text-dim); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; }
+  table.fields-src code { font-size: 0.72rem; word-break: break-word; }
 
   .card-foot { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0 0.85rem 0.7rem; }
   .branch {
@@ -501,6 +539,7 @@
 <div class="page page-single" id="flow-page">
   <section class="summary">
     <p class="intro"></p>
+    <div class="strip curl"></div>
     <div class="strip inputs"></div>
     <div class="strip outcomes"></div>
   </section>
@@ -553,12 +592,48 @@
   /* ------------------------------------------------------------ */
   /* Utilidades                                                    */
   /* ------------------------------------------------------------ */
-  // Todo texto vindo do código analisado passa por esc()/rich() antes de entrar em innerHTML.
+  // Texto do fluxo entra no DOM via textContent / appendRich — nunca como HTML cru.
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const rich = (s) =>
-    esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   const tn = (t) => (t === "ok" || t === "error" ? t : "neutral");
   const plain = (s) => String(s ?? "").replace(/\*\*/g, "").replace(/`/g, "");
+  function el(tag, attrs = {}) {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "text") n.textContent = v;
+      else n.setAttribute(k, String(v));
+    }
+    return n;
+  }
+  function appendRich(parent, s) {
+    const slots = [];
+    const mark = (type, v) => {
+      slots.push({ type, v });
+      return `\uE000${slots.length - 1}\uE001`;
+    };
+    let text = String(s ?? "")
+      .replace(/`([^`]+)`/g, (_, v) => mark("code", v))
+      .replace(/\*\*([^*]+)\*\*/g, (_, v) => mark("strong", v));
+    const dump = (chunk, node) => {
+      const re = /\uE000(\d+)\uE001/g;
+      let last = 0;
+      let m;
+      while ((m = re.exec(chunk))) {
+        if (m.index > last) node.appendChild(document.createTextNode(chunk.slice(last, m.index)));
+        const slot = slots[Number(m[1])];
+        if (slot.type === "code") node.appendChild(el("code", { text: slot.v }));
+        else {
+          const st = document.createElement("strong");
+          dump(slot.v, st);
+          node.appendChild(st);
+        }
+        last = re.lastIndex;
+      }
+      if (last < chunk.length) node.appendChild(document.createTextNode(chunk.slice(last)));
+    };
+    dump(text, parent);
+  }
   const pad2 = (n) => String(n).padStart(2, "0");
   const firstSentence = (s, max = 150) => {
     const t = plain(s).replace(/\s+/g, " ").trim();
@@ -594,6 +669,7 @@
       </header>
       <section class="summary">
         <p class="intro"></p>
+        <div class="strip curl"></div>
         <div class="strip inputs"></div>
         <div class="strip outcomes"></div>
       </section>
@@ -738,60 +814,242 @@
     return { sim: "SIM", "não": "NÃO", erro: "ERRO", segue: "", repete: "REPETE", fim: "DEPOIS" }[l] ?? l.toUpperCase();
   }
 
-  function secHTML(title, inner) { return `<section class="sec"><h4>${esc(title)}</h4>${inner}</section>`; }
+  function secEl(title, inner) {
+    const s = el("section", { class: "sec" });
+    s.appendChild(el("h4", { text: title }));
+    s.appendChild(inner);
+    return s;
+  }
 
-  function bodyHTML(n) {
-    const out = [];
-    out.push(secHTML(n.type === "route_entry" ? "Como começa" : "O que acontece", `<p>${rich(n.explanation)}</p>`));
+  function attachCopy(btn, text) {
+    btn.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const ok = await (async () => {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+          }
+        } catch (e) { /* fallback abaixo */ }
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          const r = document.execCommand("copy");
+          ta.remove();
+          return r;
+        } catch (e) {
+          return false;
+        }
+      })();
+      if (ok) {
+        btn.classList.add("ok");
+        const prev = btn.textContent;
+        btn.textContent = "Copiado!";
+        setTimeout(() => {
+          btn.classList.remove("ok");
+          btn.textContent = prev;
+        }, 1600);
+      }
+    });
+  }
+
+  function fieldsTable(fields, title) {
+    if (!fields || !fields.length) return null;
+    const table = el("table", { class: "fields-src" });
+    const thead = el("thead");
+    const hr = el("tr");
+    hr.append(el("th", { text: "Campo" }), el("th", { text: "Origem no código" }));
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tbody = el("tbody");
+    for (const f of fields) {
+      const tr = el("tr");
+      const srcTd = el("td");
+      srcTd.appendChild(el("code", { text: f.source || (f.rules && f.rules.join(", ")) || "—" }));
+      if (f.note) srcTd.append(document.createTextNode(" — " + f.note));
+      tr.append(el("td", { text: f.field || f.key || "?" }), srcTd);
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    const wrap = el("div");
+    wrap.appendChild(el("p", { class: "fields-hint", text: title || "Extraído estaticamente do projeto (sem valores inventados onde o código não define literal)." }));
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  function jsonPanel(data, label) {
+    const wrap = el("div", { class: "code-panel" });
+    const head = el("div", { class: "code-panel-head" });
+    head.appendChild(document.createTextNode(label || "JSON"));
+    const btn = el("button", { class: "copybtn", type: "button", text: "Copiar" });
+    const raw = JSON.stringify(data, null, 2);
+    attachCopy(btn, raw);
+    head.appendChild(btn);
+    wrap.append(head, el("pre", { text: raw }));
+    return wrap;
+  }
+
+  function curlPanel(cmd) {
+    const wrap = el("div", { class: "code-panel" });
+    const head = el("div", { class: "code-panel-head" });
+    head.appendChild(document.createTextNode("cURL"));
+    const btn = el("button", { class: "copybtn", type: "button", text: "Copiar" });
+    attachCopy(btn, cmd);
+    head.appendChild(btn);
+    wrap.append(head, el("pre", { text: cmd }));
+    return wrap;
+  }
+
+  function appendWhere(parent, c) {
+    parent.appendChild(document.createTextNode(`${c.file}:${c.line}`));
+    if (c.className) {
+      parent.appendChild(document.createTextNode(" · classe "));
+      parent.appendChild(el("code", { text: c.className }));
+    }
+    if (c.params && c.params.length) {
+      parent.appendChild(document.createTextNode(" · recebe "));
+      parent.appendChild(el("code", { text: c.params.join(", ") }));
+    }
+  }
+
+  function fillBody(parent, n) {
+    const p = el("p");
+    appendRich(p, n.explanation);
+    parent.appendChild(secEl(n.type === "route_entry" ? "Como começa" : "O que acontece", p));
 
     const facts = n.meta.facts || [];
     if (facts.length) {
       const title = n.type === "route_entry" ? "Dados recebidos" : n.type === "return" ? "Resposta" : "Dados envolvidos";
-      out.push(secHTML(title, `<dl class="facts">${facts.map((f) => `<dt>${rich(f.k)}</dt><dd>${rich(f.v)}</dd>`).join("")}</dl>`));
+      const dl = el("dl", { class: "facts" });
+      for (const f of facts) {
+        const dt = el("dt");
+        appendRich(dt, f.k);
+        const dd = el("dd");
+        appendRich(dd, f.v);
+        dl.append(dt, dd);
+      }
+      parent.appendChild(secEl(title, dl));
+    }
+
+    const reqFields = n.meta.requestFields;
+    if (reqFields && reqFields.length) {
+      const ft = fieldsTable(reqFields, "Campos e tipos de FormRequest::rules() — valores só quando a regra permite inferir.");
+      if (ft) parent.appendChild(secEl("Corpo da requisição (do código)", ft));
+    }
+    const reqSample = n.meta.requestSample;
+    if (reqSample && Object.keys(reqSample).length) {
+      parent.appendChild(secEl(reqFields?.length ? "JSON de envio (derivado das rules)" : "Corpo da requisição (JSON)", jsonPanel(reqSample, "Request")));
+    }
+    const resFields = n.meta.responseFields;
+    if (resFields && resFields.length) {
+      const ft = fieldsTable(
+        resFields.map((f) => ({ key: f.key, source: f.source, note: f.note })),
+        "Chaves e expressões do retorno no código; null = valor só em tempo de execução."
+      );
+      if (ft) parent.appendChild(secEl("Resposta (do código)", ft));
+    }
+    const resSample = n.meta.responseSample;
+    if (resSample && Object.keys(resSample).length) {
+      const title = n.type === "return" ? "JSON de resposta (derivado do código)" : "Corpo JSON";
+      parent.appendChild(secEl(title, jsonPanel(resSample, "Response")));
     }
 
     const rw = n.meta.reachedWhen || [];
     if (rw.length) {
-      out.push(secHTML("Só chega aqui quando", `<ul>${rw.map((t) => `<li>${rich(t)}</li>`).join("")}</ul>`));
+      const ul = el("ul");
+      for (const t of rw) {
+        const li = el("li");
+        appendRich(li, t);
+        ul.appendChild(li);
+      }
+      parent.appendChild(secEl("Só chega aqui quando", ul));
     }
 
     if (isBranching(n)) {
-      const rows = (OUT.get(n.id) || []).map((e) => {
+      const paths = el("div", { class: "paths" });
+      for (const e of OUT.get(n.id) || []) {
         const t = BY_ID.get(e.to);
-        const when = e.when ? `quando ${rich(e.when)}` : "";
-        return `<div class="path ${tn(e.tone)}"><span class="tag">${esc(edgeLabelText(e) || "SEGUE")}</span><span>${when || "&nbsp;"}</span>
-          <span class="goto">vai para <button data-goto="${esc(e.to)}" data-edge="${e.key}">${pad2(ORDER_NUM.get(t.id))} · ${rich(t.label)}</button></span></div>`;
-      });
-      if (rows.length) out.push(secHTML("Os caminhos possíveis", `<div class="paths">${rows.join("")}</div>`));
+        const row = el("div", { class: `path ${tn(e.tone)}` });
+        row.appendChild(el("span", { class: "tag", text: edgeLabelText(e) || "SEGUE" }));
+        const whenSpan = el("span");
+        if (e.when) {
+          whenSpan.appendChild(document.createTextNode("quando "));
+          appendRich(whenSpan, e.when);
+        } else {
+          whenSpan.textContent = "\u00a0";
+        }
+        row.appendChild(whenSpan);
+        const go = el("span", { class: "goto" });
+        go.appendChild(document.createTextNode("vai para "));
+        const btn = el("button");
+        btn.dataset.goto = e.to;
+        btn.dataset.edge = e.key;
+        btn.appendChild(document.createTextNode(`${pad2(ORDER_NUM.get(t.id))} · `));
+        appendRich(btn, t.label);
+        go.appendChild(btn);
+        row.appendChild(go);
+        paths.appendChild(row);
+      }
+      if (paths.childNodes.length) parent.appendChild(secEl("Os caminhos possíveis", paths));
     }
 
     const c = n.meta.callee;
     if (c && c.summary && c.summary.length) {
-      const where = `${esc(c.file)}:${esc(c.line)}${c.className ? ` · classe <code>${esc(c.className)}</code>` : ""}${c.params && c.params.length ? ` · recebe <code>${esc(c.params.join(", "))}</code>` : ""}`;
-      const items = c.summary.map((it) => {
+      const wrap = el("div");
+      const where = el("div", { class: "where mono" });
+      appendWhere(where, c);
+      wrap.appendChild(where);
+      const ul = el("ul", { class: "inside" });
+      for (const it of c.summary) {
         const showFile = it.file && it.file !== c.file;
-        const ln = it.line ? (showFile ? `${esc(it.file)}:${it.line}` : `L${it.line}`) : "";
-        const cls = [String(it.kind || "").replace(/[^\w-]/g, ""), it.tone === "error" ? "err" : ""].join(" ");
-        return `<li class="${cls}" style="margin-left:${(Number(it.depth) || 0) * 14}px"><span class="tx">${rich(it.text)}</span><span class="ln mono">${ln}</span></li>`;
-      });
-      out.push(secHTML(`Por dentro de ${c.name}`, `<div class="where mono">${where}</div><ul class="inside">${items.join("")}</ul>`));
+        const ln = it.line ? (showFile ? `${it.file}:${it.line}` : `L${it.line}`) : "";
+        const cls = [String(it.kind || "").replace(/[^\w-]/g, ""), it.tone === "error" ? "err" : ""].filter(Boolean).join(" ");
+        const li = el("li", { class: cls });
+        li.style.marginLeft = `${(Number(it.depth) || 0) * 14}px`;
+        const tx = el("span", { class: "tx" });
+        appendRich(tx, it.text);
+        li.append(tx, el("span", { class: "ln mono", text: ln }));
+        ul.appendChild(li);
+      }
+      wrap.appendChild(ul);
+      parent.appendChild(secEl(`Por dentro de ${c.name}`, wrap));
     } else if (c) {
-      out.push(secHTML(`Definição de ${c.name}`, `<div class="where mono">${esc(c.file)}:${esc(c.line)}${c.className ? ` · classe ${esc(c.className)}` : ""}</div>`));
+      const where = el("div", { class: "where mono" });
+      where.appendChild(document.createTextNode(`${c.file}:${c.line}`));
+      if (c.className) where.appendChild(document.createTextNode(` · classe ${c.className}`));
+      parent.appendChild(secEl(`Definição de ${c.name}`, where));
     }
 
     if (state.mode === "tech") {
       const sym = n.symbol || {};
-      const rows = [];
-      if (sym.functionName) rows.push(["Função/método", `<code>${esc(sym.functionName)}</code>`]);
-      if (sym.className) rows.push(["Classe", `<code>${esc(sym.className)}</code>`]);
-      if (sym.params && sym.params.length) rows.push(["Parâmetros", sym.params.map((p) => `<code>${esc(p)}</code>`).join(" ")]);
-      if (sym.variables && sym.variables.length) rows.push(["Variáveis", sym.variables.map((p) => `<code>${esc(p)}</code>`).join(" ")]);
-      if (rows.length) out.push(secHTML("Símbolos", `<dl class="facts">${rows.map((r) => `<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("")}</dl>`));
+      const dl = el("dl", { class: "facts" });
+      const addRow = (k, nodes) => {
+        dl.appendChild(el("dt", { text: k }));
+        const dd = el("dd");
+        dd.append(...nodes);
+        dl.appendChild(dd);
+      };
+      if (sym.functionName) addRow("Função/método", [el("code", { text: sym.functionName })]);
+      if (sym.className) addRow("Classe", [el("code", { text: sym.className })]);
+      const codes = (list) => list.flatMap((p, i) => i ? [document.createTextNode(" "), el("code", { text: p })] : [el("code", { text: p })]);
+      if (sym.params && sym.params.length) addRow("Parâmetros", codes(sym.params));
+      if (sym.variables && sym.variables.length) addRow("Variáveis", codes(sym.variables));
+      if (dl.childNodes.length) parent.appendChild(secEl("Símbolos", dl));
       if (n.snippet) {
-        out.push(secHTML("Código", `<div class="where mono">${esc(n.file || "")}:${n.line}</div><pre class="snippet">${esc(n.snippet)}</pre>`));
+        const wrap = el("div");
+        wrap.append(
+          el("div", { class: "where mono", text: `${n.file || ""}:${n.line}` }),
+          el("pre", { class: "snippet", text: n.snippet })
+        );
+        parent.appendChild(secEl("Código", wrap));
       }
     }
-    return out.join("");
   }
 
   /* ------------------------------------------------------------ */
@@ -811,37 +1069,62 @@
   }
 
   function fillCard(n) {
-    const el = CARDS.get(n.id);
+    const node = CARDS.get(n.id);
     const k = kindOf(n);
     const open = state.open.has(n.id);
-    el.className = `card k-${k.cls}${open ? " open" : ""}${state.highlight && !state.hl.has(n.id) ? " dim" : ""}`;
+    node.className = `card k-${k.cls}${open ? " open" : ""}${state.highlight && !state.hl.has(n.id) ? " dim" : ""}`;
+    node.replaceChildren();
+
+    const head = el("div", { class: "card-head", role: "button", tabindex: "0", "aria-expanded": String(open), "data-toggle": n.id });
+    const top = el("div", { class: "card-top" });
+    top.append(
+      el("span", { class: "num", text: pad2(ORDER_NUM.get(n.id)) }),
+      el("span", { class: "kind", text: k.label })
+    );
+    const loc = el("span", { class: "loc mono" });
+    if (n.file) {
+      loc.title = `${n.file}:${n.line}`;
+      loc.textContent = `${n.file.split("/").pop()}:${n.line}`;
+    }
+    top.append(loc, el("button", { class: "chev", tabindex: "-1", "aria-hidden": "true", text: "▾" }));
+    head.appendChild(top);
+
+    const h3 = el("h3", { class: "ttl" });
+    if (state.mode === "tech" && n.technical) h3.appendChild(el("code", { text: n.technical }));
+    else appendRich(h3, n.label);
     const o = n.meta.outcome;
-    const pill = o && o.status ? `<span class="status-pill">${esc(o.status)}</span>` : "";
-    const title = state.mode === "tech" && n.technical ? `<code>${esc(n.technical)}</code>` : rich(n.label);
-    const loc = n.file ? `${esc(n.file.split("/").pop())}:${n.line}` : "";
+    if (o && o.status) h3.appendChild(el("span", { class: "status-pill", text: o.status }));
+    head.appendChild(h3);
     const sub = subtitle(n);
+    if (sub) head.appendChild(el("p", { class: "sub", text: sub }));
+    node.appendChild(head);
 
-    const branches = (isBranching(n) ? OUT.get(n.id) || [] : []).map((e) => {
-      const off = state.collapsed.has(e.key);
-      const cnt = off ? 0 : hiddenIfCollapsed(e.key);
-      if (!off && cnt === 0) return "";
-      const lbl = edgeLabelText(e) || "segue";
-      return `<button class="branch ${tn(e.tone)}${off ? " off" : ""}" data-branch="${e.key}" title="${esc(e.when ? "Quando " + plain(e.when) : "")}">${off ? "▸ mostrar" : "▾ ocultar"} ${esc(lbl.startsWith("ERRO · ") ? "erro · " + lbl.slice(7) : lbl.toLowerCase())}${cnt ? ` · ${cnt} ${cnt === 1 ? "passo" : "passos"}` : ""}</button>`;
-    }).join("");
+    if (open) {
+      const body = el("div", { class: "body" });
+      fillBody(body, n);
+      node.appendChild(body);
+    }
 
-    el.innerHTML = `
-      <div class="card-head" role="button" tabindex="0" aria-expanded="${open}" data-toggle="${esc(n.id)}">
-        <div class="card-top">
-          <span class="num">${pad2(ORDER_NUM.get(n.id))}</span>
-          <span class="kind">${k.label}</span>
-          <span class="loc mono" title="${esc(n.file || "")}:${n.line}">${loc}</span>
-          <button class="chev" tabindex="-1" aria-hidden="true">▾</button>
-        </div>
-        <h3 class="ttl">${title}${pill}</h3>
-        ${sub ? `<p class="sub">${esc(sub)}</p>` : ""}
-      </div>
-      ${open ? `<div class="body">${bodyHTML(n)}</div>` : ""}
-      ${branches ? `<div class="card-foot">${branches}</div>` : ""}`;
+    if (isBranching(n)) {
+      const foot = el("div", { class: "card-foot" });
+      let any = false;
+      for (const e of OUT.get(n.id) || []) {
+        const off = state.collapsed.has(e.key);
+        const cnt = off ? 0 : hiddenIfCollapsed(e.key);
+        if (!off && cnt === 0) continue;
+        any = true;
+        const lbl = edgeLabelText(e) || "segue";
+        const shown = lbl.startsWith("ERRO · ") ? "erro · " + lbl.slice(7) : lbl.toLowerCase();
+        const b = el("button", {
+          class: `branch ${tn(e.tone)}${off ? " off" : ""}`,
+          "data-branch": e.key,
+          text: `${off ? "▸ mostrar" : "▾ ocultar"} ${shown}${cnt ? ` · ${cnt} ${cnt === 1 ? "passo" : "passos"}` : ""}`,
+        });
+        if (e.when) b.title = "Quando " + plain(e.when);
+        foot.appendChild(b);
+      }
+      if (any) node.appendChild(foot);
+    }
   }
 
   /* ------------------------------------------------------------ */
@@ -1290,27 +1573,63 @@
     const r = FLOW.meta.route;
     if (!opts.inSection) {
       document.title = `${r.method} ${r.path} · Flow View`;
-      $g("title").innerHTML = `<span class="method">${esc(r.method)}</span><span class="route-path">${esc(r.path)}</span>`;
+      const title = $g("title");
+      title.replaceChildren(
+        el("span", { class: "method", text: r.method }),
+        el("span", { class: "route-path", text: r.path })
+      );
     }
-    $(".intro").innerHTML = rich(FLOW.meta.intro || FLOW.meta.summary || "");
+    const intro = $(".intro");
+    intro.replaceChildren();
+    appendRich(intro, FLOW.meta.intro || FLOW.meta.summary || "");
+
+    const curlEl = $(".curl");
+    if (curlEl) {
+      curlEl.replaceChildren();
+      const cmd = FLOW.meta.curl;
+      if (cmd) {
+        curlEl.appendChild(el("span", { class: "strip-label", text: "Testar a chamada" }));
+        const panel = curlPanel(cmd);
+        panel.style.width = "100%";
+        curlEl.appendChild(panel);
+      }
+    }
 
     const entry = BY_ID.get(FLOW.entry);
     const facts = (entry && entry.meta.facts) || [];
-    $(".inputs").innerHTML = facts.length
-      ? `<span class="strip-label">Recebe</span>` + facts.map((f) => `<span class="chip input"><span class="mark">${esc(f.k)}:</span> ${rich(f.v)}</span>`).join("")
-      : "";
+    const inputs = $(".inputs");
+    inputs.replaceChildren();
+    if (facts.length) {
+      inputs.appendChild(el("span", { class: "strip-label", text: "Recebe" }));
+      for (const f of facts) {
+        const chip = el("span", { class: "chip input" });
+        chip.append(el("span", { class: "mark", text: `${f.k}:` }), document.createTextNode(" "));
+        appendRich(chip, f.v);
+        inputs.appendChild(chip);
+      }
+    }
 
     const outs = FLOW.meta.outcomes || [];
     const outcomesEl = $(".outcomes");
-    outcomesEl.innerHTML = outs.length
-      ? `<span class="strip-label">Pode terminar em</span>` +
-        outs.map((o, i) => {
-          const txt = o.status ? `${o.status} ${esc(o.statusText || "")}` : esc(o.statusText || "");
-          const mark = o.tone === "ok" ? "✓" : o.tone === "error" ? "✕" : "•";
-          const det = o.detail ? ` <span class="det mono">${esc(o.detail)}</span>` : "";
-          return `<button class="chip btn ${tn(o.tone)}" data-out="${i}" title="Clique para destacar o caminho até este resultado"><span class="mark">${mark}</span> ${txt}${det}</button>`;
-        }).join("")
-      : "";
+    outcomesEl.replaceChildren();
+    if (outs.length) {
+      outcomesEl.appendChild(el("span", { class: "strip-label", text: "Pode terminar em" }));
+      outs.forEach((o, i) => {
+        const txt = o.status ? `${o.status} ${o.statusText || ""}`.trim() : (o.statusText || "");
+        const mark = o.tone === "ok" ? "✓" : o.tone === "error" ? "✕" : "•";
+        const btn = el("button", {
+          class: `chip btn ${tn(o.tone)}`,
+          "data-out": String(i),
+          title: "Clique para destacar o caminho até este resultado",
+        });
+        btn.append(el("span", { class: "mark", text: mark }), document.createTextNode(" " + txt));
+        if (o.detail) {
+          btn.appendChild(document.createTextNode(" "));
+          btn.appendChild(el("span", { class: "det mono", text: o.detail }));
+        }
+        outcomesEl.appendChild(btn);
+      });
+    }
 
     outcomesEl.onclick = (ev) => {
       const b = ev.target.closest("[data-out]");
@@ -1323,12 +1642,24 @@
       const bn = $(".banner");
       bn.style.setProperty("--banner", o.tone === "ok" ? "var(--ok)" : o.tone === "error" ? "var(--err)" : "var(--text-dim)");
       const when = (o.reachedWhen || []);
-      bn.innerHTML = `<strong>${esc(b.textContent.trim())}</strong> — ` +
-        (when.length ? `acontece quando ${when.map(rich).join("; <em>e</em> ")}.` : "acontece quando nenhuma regra anterior impede o fluxo.") +
-        `<button class="linkbtn clear-hl">limpar destaque</button>`;
+      bn.replaceChildren();
+      bn.append(el("strong", { text: b.textContent.trim() }), document.createTextNode(" — "));
+      if (when.length) {
+        bn.appendChild(document.createTextNode("acontece quando "));
+        when.forEach((w, i) => {
+          if (i) {
+            bn.append(document.createTextNode("; "), el("em", { text: "e" }), document.createTextNode(" "));
+          }
+          appendRich(bn, w);
+        });
+        bn.appendChild(document.createTextNode("."));
+      } else {
+        bn.appendChild(document.createTextNode("acontece quando nenhuma regra anterior impede o fluxo."));
+      }
+      const clr = el("button", { class: "linkbtn clear-hl", text: "limpar destaque" });
+      clr.onclick = clearHighlight;
+      bn.appendChild(clr);
       bn.classList.add("show");
-      const clr = bn.querySelector(".clear-hl");
-      if (clr) clr.onclick = clearHighlight;
       render();
       goto(o.nodeId);
     };
@@ -1481,7 +1812,10 @@
     $g("legend-global").hidden = false;
     const title = DOC.meta.title || "Fluxos";
     document.title = title + " · Flow View";
-    $g("title").innerHTML = `<span class="bundle-title">${esc(title)}</span><span class="bundle-count">(${flowList.length} rotas)</span>`;
+    $g("title").replaceChildren(
+      el("span", { class: "bundle-title", text: title }),
+      el("span", { class: "bundle-count", text: `(${flowList.length} rotas)` })
+    );
     const main = $g("flow-sections");
     main.innerHTML = flowList.map((flow, i) => flowSectionHtml(i, flow)).join("");
     main.querySelectorAll(".flow-count").forEach((el) => { el.textContent = String(flowList.length); });

@@ -5,6 +5,9 @@
 
 import { splitTop, findTopOp, stripParens, splitArgs, matchClose, parseChain, stringLiteral, classConst, parseArrayLiteral } from "./parse.mjs";
 import { statusText, code, trunc, cap, de, humanizeName } from "../narrate.mjs";
+import { buildResponseSample } from "../samples.mjs";
+import { buildResourceJsonFromSource, detectHandlerOrderVar } from "./static-json.mjs";
+import { jsonFromReturnExpression } from "./response-shape.mjs";
 
 export { statusText, code, trunc, cap, de };
 
@@ -858,6 +861,38 @@ function describeReturn(rest, ctx) {
         : "É um caminho de **sucesso**: o pedido foi atendido e o processamento termina aqui.";
     const title = known ? `Responde ${st} · ${txt}` : "Devolve a resposta ao cliente";
     const short = `Devolve ${kindTxt}${known ? ` com status ${st} (${txt})` : ""}.`;
+    let resourceBody = null;
+    let responseFields = null;
+    const analysisCtx =
+      ctx && ctx.method
+        ? { ...ctx, handlerMethod: ctx.method, orderVar: detectHandlerOrderVar(ctx.project, ctx.method) }
+        : ctx;
+    if (resp.kind === "resource" && ctx && ctx.project && resp.resource) {
+      const fq =
+        resp.resource.includes("\\") ? resp.resource : ctx.project.qualify(resp.resource, ctx.file) || `App\\Http\\Resources\\${resp.resource}`;
+      const built = buildResourceJsonFromSource(e, fq, ctx.project, analysisCtx);
+      if (built) {
+        resourceBody = built.json;
+        responseFields = built.fields;
+      }
+    }
+    let jsonBody = null;
+    if (ctx && ctx.project) {
+      const fromExpr = jsonFromReturnExpression(e, ctx.project, analysisCtx, resp);
+      if (fromExpr?.json != null) {
+        jsonBody = fromExpr.json;
+        responseFields = fromExpr.fields;
+      }
+    }
+    const responseSample = buildResponseSample({
+      status: st,
+      kind: resp.kind,
+      keys,
+      jsonBody,
+      resourceBody,
+      validationFields: (ctx && ctx.validatedFields) || [],
+      message: cfgMsg && typeof cfgMsg === "string" ? cfgMsg : undefined,
+    });
     const base = {
       nodeType: "return",
       title,
@@ -865,6 +900,8 @@ function describeReturn(rest, ctx) {
       short,
       facts,
       tone,
+      ...(responseSample ? { responseSample } : {}),
+      ...(responseFields ? { responseFields } : {}),
     };
     return handler ? { ...base, outcome: { status: st, statusText: txt || "Retorno ao cliente", tone: known ? tone : "neutral", detail } } : base;
   }
@@ -1593,9 +1630,9 @@ export function parseRules(arrText) {
     }
     const tokens = items.flatMap((x) => (strVal(x) != null ? strVal(x).split("|") : [x]));
     const has = (n) => tokens.some((x) => typeof x === "string" && new RegExp(`^${n}(?::|$)`).test(x.trim()));
-    const ctxType = has("array") ? "array" : has("integer") || has("numeric") || has("decimal") ? "number" : "string";
+    const ctxType = has("array") ? "array" : has("boolean") ? "boolean" : has("integer") || has("numeric") || has("decimal") ? "integer" : "string";
     const words = items.flatMap((x) => ruleItemToWords(x, ctxType));
-    out.push({ field, words, required: has("required"), optional: has("nullable") || has("sometimes") });
+    out.push({ field, words, required: has("required"), optional: has("nullable") || has("sometimes"), tokens, type: ctxType });
   }
   return out;
 }

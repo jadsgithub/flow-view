@@ -10,7 +10,17 @@
  */
 
 import { realpathSync, statSync } from "node:fs";
+import { open } from "node:fs/promises";
 import path from "node:path";
+
+/** Métodos HTTP aceitos pelo scanner e pelo CLI. */
+export const HTTP_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "ANY"]);
+
+/** Normaliza o verbo; valor desconhecido vira GET (nunca entra cru em `RegExp`). */
+export function normHttpMethod(m) {
+  const u = String(m || "GET").toUpperCase();
+  return HTTP_METHODS.has(u) ? u : "GET";
+}
 
 /** Tamanho máximo (bytes) de um arquivo-fonte analisado. */
 export const MAX_FILE_BYTES = 1_500_000;
@@ -72,5 +82,24 @@ export function isReadableSource(abs, max = MAX_FILE_BYTES) {
     return st.isFile() && st.size <= max;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Lê o arquivo se for regular e não exceder `max` bytes, no mesmo descritor
+ * (stat + read) para não haver janela TOCTOU entre as duas operações.
+ * @returns {Promise<string|null>}
+ */
+export async function readFileIfSmall(abs, max = MAX_FILE_BYTES) {
+  let fh;
+  try {
+    fh = await open(abs, "r");
+    const st = await fh.stat();
+    if (!st.isFile() || st.size > max) return null;
+    return await fh.readFile("utf8");
+  } catch {
+    return null;
+  } finally {
+    if (fh) await fh.close().catch(() => {});
   }
 }

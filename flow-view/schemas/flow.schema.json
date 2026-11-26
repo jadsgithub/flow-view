@@ -34,6 +34,7 @@
         "summary": { "type": "string" },
         "intro": { "type": "string", "description": "Parágrafo de abertura contando o endpoint em linguagem natural" },
         "inputs": { "type": "array", "items": { "type": "object" } },
+        "curl": { "type": "string", "description": "Comando cURL de exemplo para chamar o endpoint" },
         "outcomes": {
           "type": "array",
           "items": {
@@ -150,6 +151,19 @@
                 "params": { "type": "array", "items": { "type": "string" } },
                 "summary": { "type": "array", "items": { "type": "object" } }
               }
+            },
+            "validationRules": {
+              "type": "array",
+              "description": "Regras de validação (FormRequest) para amostras de request",
+              "items": { "type": "object" }
+            },
+            "requestSample": {
+              "type": "object",
+              "description": "Exemplo JSON da requisição (body/query/path)"
+            },
+            "responseSample": {
+              "type": "object",
+              "description": "Exemplo JSON da resposta HTTP"
             }
           }
         }

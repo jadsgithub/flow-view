@@ -7,6 +7,7 @@ import { explainNode } from "./explain.mjs";
 import { statusText } from "./narrate.mjs";
 import { redactDeep } from "./redact.mjs";
 import { VERSION, NAME } from "./version.mjs";
+import { enrichHttpSamples } from "./samples.mjs";
 
 const code = (s) => "`" + s + "`";
 
@@ -230,6 +231,7 @@ export function buildFlowJson(data) {
     nodes: enriched,
     edges: outEdges,
   };
+  enrichHttpSamples(flow, data);
   // Rede de proteção: nenhum segredo "chumbado" no código vai para o flow.json/HTML.
   return redactDeep(flow);
 }

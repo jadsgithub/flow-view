@@ -3,7 +3,7 @@ name: flow-view
 description: "Gera uma história interativa (HTML standalone, modo Negócio e modo Técnico) do que acontece em UMA rota/endpoint: middlewares, FormRequest/validação, autorização, controller, services, Eloquent, exceções, jobs/eventos e cada resposta possível (200, 401, 403, 404, 422, 409…). Foco principal em PHP/Laravel; também Express, Fastify, Hono, Next.js, FastAPI, Flask e Gin. Análise 100% estática, sem executar o código. Use quando o usuário pedir para entender, explicar, documentar ou desenhar o fluxo de um endpoint/rota (ex.: 'mostre o fluxo de POST /api/orders', 'o que acontece em /checkout?', 'explique essa rota para o time de negócio', 'diagrama do FormRequest/controller'). Não serve para dashboards nem para diagramas de arquitetura geral."
 license: MIT
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
   stack-principal: "PHP / Laravel"
 ---
 

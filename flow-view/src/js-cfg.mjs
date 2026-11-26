@@ -46,6 +46,8 @@ export function buildJsCfg(opt) {
     const meta = { facts: d.facts || [], tone: d.tone || "neutral" };
     if (d.outcome) meta.outcome = d.outcome;
     if (d.varName) meta.varName = d.varName;
+    if (d.responseSample) meta.responseSample = d.responseSample;
+    if (d.requestSample) meta.requestSample = d.requestSample;
     if (d.callee) {
       meta.callee = {
         name: d.callee.name,

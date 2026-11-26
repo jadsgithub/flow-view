@@ -14,7 +14,7 @@ import { findRouteHandler, listLaravelRoutes } from "../src/scanner.mjs";
 import { traceRoute } from "../src/tracer.mjs";
 import { buildFlowJson } from "../src/builder.mjs";
 import { renderHtml, renderBundleHtml } from "../src/renderer.mjs";
-import { MAX_FLOW_BYTES } from "../src/security.mjs";
+import { MAX_FLOW_BYTES, HTTP_METHODS, readFileIfSmall } from "../src/security.mjs";
 import { redactDeep } from "../src/redact.mjs";
 import { VERSION } from "../src/version.mjs";
 import { expandUserPath, htmlFileName, runName, bundleRunName, bundleHtmlFileName } from "../src/output.mjs";
@@ -29,7 +29,7 @@ import {
 } from "../src/bundle.mjs";
 import { promptBundleRoutes } from "../src/prompt.mjs";
 
-const METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "ANY"]);
+const METHODS = HTTP_METHODS;
 
 class UsageError extends Error {}
 
@@ -239,9 +239,9 @@ async function main() {
 
   if (args.renderOnly) {
     const flowPath = resolve(expandUserPath(args.renderOnly));
-    const st = await stat(flowPath);
-    if (!st.isFile() || st.size > MAX_FLOW_BYTES) throw new UsageError("flow.json/flows.json inexistente ou grande demais.");
-    const doc = JSON.parse(await readFile(flowPath, "utf8"));
+    const raw = await readFileIfSmall(flowPath, MAX_FLOW_BYTES);
+    if (raw == null) throw new UsageError("flow.json/flows.json inexistente ou grande demais.");
+    const doc = JSON.parse(raw);
     let name;
     let htmlPath;
     const outBase = isBundle(doc)

@@ -1,0 +1,4 @@
+name: Flow View
+# Testes montam payloads de XSS e regex de propósito; não são superfície de ataque.
+paths-ignore:
+  - test/**

@@ -4,6 +4,7 @@
  */
 
 import { parseStatements, parseChain, classConst, lineNoAt, matchClose, ws, parseArrayLiteral, stringLiteral } from "./parse.mjs";
+import { escapeRegExp } from "../security.mjs";
 import { describeStatement, describeCondition, describeLoop, code, trunc, excStatus, statusFromExpr } from "./narrate.mjs";
 import { primaryType, isBuiltinType } from "./project.mjs";
 
@@ -223,7 +224,7 @@ export function createPhpResolver(project, opt = {}) {
     const body = project.methodBody(method);
     const out = [];
     for (const p of method.params) {
-      const v = p.name.replace(/\$/g, "\\$");
+      const v = escapeRegExp(p.name);
       const set = new Set();
       for (const m of body.matchAll(new RegExp(`${v}\\s*\\[\\s*['"]([\\w-]+)['"]\\s*\\]`, "g"))) set.add(m[1]);
       for (const m of body.matchAll(new RegExp(`${v}\\s*\\??->\\s*([A-Za-z_]\\w*)\\b(?!\\s*\\()`, "g"))) if (!IGNORED_FIELDS.has(m[1])) set.add(m[1]);

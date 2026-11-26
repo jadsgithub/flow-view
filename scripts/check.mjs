@@ -11,6 +11,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
+import { escapeRegExp } from "../flow-view/src/security.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
@@ -47,7 +48,7 @@ const changelog = read("CHANGELOG.md");
 const top = changelog.match(/^## \[(\d+\.\d+\.\d+[^\]]*)\]/m);
 if (!top) fail("CHANGELOG.md: nenhuma seção '## [x.y.z]' encontrada.");
 else if (top[1] !== pkg.version) fail(`CHANGELOG.md: seção mais recente é ${top[1]}, mas package.json é ${pkg.version}.`);
-if (!new RegExp(`^\\[${pkg.version.replace(/[.+]/g, "\\$&")}\\]: `, "m").test(changelog)) {
+if (!new RegExp(`^\\[${escapeRegExp(pkg.version)}\\]: `, "m").test(changelog)) {
   fail(`CHANGELOG.md: falta o link de comparação "[${pkg.version}]: ..." no rodapé.`);
 }
 

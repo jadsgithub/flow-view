@@ -112,6 +112,17 @@ test("laravel: POST /api/orders percorre middlewares, FormRequest, controller e 
     assert.equal(flow.meta.entry.framework, "laravel");
     assert.equal(flow.meta.entry.handler.name, "OrderController::store");
     assert.equal(flow.meta.entry.route.routeName, "orders.store");
+    assert.ok(flow.meta.curl && flow.meta.curl.includes("curl -X POST"), "meta.curl para testar o endpoint");
+    const entry = flow.nodes.find((n) => n.id === flow.entry);
+    assert.ok(entry.meta.requestSample && entry.meta.requestSample.body, "exemplo JSON de request na entrada");
+    const ok201 = flow.nodes.find((n) => n.meta.outcome?.status === 201);
+    assert.ok(ok201?.meta.responseSample?.data, "resource Laravel com envelope data");
+    assert.equal(ok201.meta.responseSample.data.status, "paid");
+    assert.ok(Array.isArray(ok201.meta.responseSample.data.items), "items whenLoaded vira array");
+    assert.ok(entry.meta.requestFields && entry.meta.requestFields.length >= 5, "campos do FormRequest");
+    assert.ok(ok201.meta.responseFields && ok201.meta.responseFields.some((f) => f.source.includes("place()")), "status rastreado ao OrderService");
+    assert.match(html, /Testar a chamada/);
+    assert.match(html, /Copiar/);
 
     // todos os desfechos esperados, cada um uma vez
     assert.deepEqual(statuses(flow), [201, 401, 402, 403, 404, 409, 422, 422, 429]);

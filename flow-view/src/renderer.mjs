@@ -12,12 +12,23 @@ export { assertFlowShape } from "./flow-shape.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/** Corpo do `<script>` do viewer (não o JSON). Evita regex de “filtro HTML”. */
+function extractViewerScript(html) {
+  const open = "<script>";
+  const close = "</script>";
+  const start = html.indexOf(open);
+  if (start < 0) throw new Error("Template inválido: script do viewer não encontrado.");
+  const from = start + open.length;
+  const end = html.indexOf(close, from);
+  if (end < 0) throw new Error("Template inválido: script do viewer não encontrado.");
+  return html.slice(from, end);
+}
+
 function embedFlowJson(html, payload) {
   const json = JSON.stringify(payload).replace(/</g, "\\u003c").replace(/\u2028|\u2029/g, " ");
   html = html.replace("__FLOW_JSON__", () => json);
-  const m = html.match(/<script>([\s\S]*?)<\/script>/);
-  if (!m) throw new Error("Template inválido: script do viewer não encontrado.");
-  const hash = createHash("sha256").update(m[1], "utf8").digest("base64");
+  const script = extractViewerScript(html);
+  const hash = createHash("sha256").update(script, "utf8").digest("base64");
   const csp = [
     "default-src 'none'",
     `script-src 'sha256-${hash}'`,

@@ -7,6 +7,16 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-26
+
+### Adicionado
+
+- Viewer: exemplos de **request/response em JSON** nos cards (entrada, validação e retornos) e bloco **cURL** com botão **Copiar** no resumo do endpoint.
+- Respostas **API Resource**: leitura estática de `toArray()` (incluindo `whenLoaded`), envelope Laravel `{ data: … }`, rastreio de literais em serviços (ex. `status` após `place()`), e tabela de origem por campo (`responseFields`).
+- Requisição: corpo derivado só de `FormRequest::rules()` (tipos/tokens), sem campos genéricos inventados; tabela `requestFields` nos cards.
+- Resposta: arrays PHP **aninhados**, `response()->success()` / `error()`, macros `Response::macro`, `config()` e helpers estáticos (`ApiResponse::success`); removido fallback genérico `{ "ok": true }`.
+- Módulos `samples.mjs`, `static-json.mjs`, `resource-sample.mjs`, `response-shape.mjs` e campos `requestSample` / `responseSample` no schema do IR.
+
 ### Corrigido
 
 - Bundle com mais de uma rota: a segunda e demais rotas ficavam sem diagrama (`ReferenceError: mkId is not defined` ao desenhar setas SVG).
@@ -113,7 +123,8 @@ Primeira versão pública.
 - Validação estrita dos argumentos do CLI e do IR em `--render-only`; navegador aberto sem shell.
 - Zero dependências de runtime; Actions fixadas por SHA; CodeQL, Scorecard, Dependabot e Dependency Review.
 
-[Unreleased]: https://github.com/jadsgithub/flow-view/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/jadsgithub/flow-view/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jadsgithub/flow-view/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/jadsgithub/flow-view/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/jadsgithub/flow-view/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/jadsgithub/flow-view/compare/v0.1.0...v0.2.0
