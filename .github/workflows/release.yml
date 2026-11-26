@@ -29,10 +29,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: A tag precisa apontar para um commit da main
+      - name: A tag precisa apontar para um commit da branch principal
         run: |
-          git fetch --no-tags origin main
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          default_branch=$(git remote show origin | sed -n 's/ *HEAD branch: //p')
+          test -n "$default_branch"
+          git fetch --no-tags origin "$default_branch"
+          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$default_branch"
 
       - name: Setup Node.js 22
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
